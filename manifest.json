@@ -1,0 +1,19 @@
+{
+  "name": "MetaPulse AI Signal Console",
+  "short_name": "MetaPulse AI",
+  "description": "Human-grade market intelligence for Solana",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070a14",
+  "theme_color": "#7b61ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='none' stroke='%237b61ff' stroke-width='8'/><circle cx='50' cy='50' r='25' fill='%233ad6ff'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

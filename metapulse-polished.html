@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>MetaPulse AI — Signal Console</title>
+  <meta name="theme-color" content="#0b0b12" />
+  <style>
+    :root {
+      --bg-0:#0a0b10; --bg-1:#0e111b;
+      --fg:#e9eeff;   --muted:#a9b6e0;
+      --cyan:#3ad6ff; --blue:#5aa9ff; --purple:#7b61ff; --accent:#a2ffef;
+      --border:#1f2a48; --panel:#12172a; --panel-2:#0f1426;
+      --glass: linear-gradient(180deg, rgba(22,28,54,.85), rgba(13,19,38,.75));
+      --shadow: 0 24px 60px rgba(0,0,0,.55);
+    }
+    html, body { height:100%; }
+    body {
+      margin:0; color:var(--fg);
+      background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      line-height: 1.5;
+    }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
+
+    /* Loading overlay */
+    .loading { position:fixed; inset:0; display:grid; place-items:center; z-index:9999; background:#0a0b10;
+      transition: opacity .5s ease, visibility .5s ease; }
+    .loading.hidden { opacity:0; visibility:hidden; }
+    .load-card { padding:24px; border-radius:16px; border:1px solid var(--border); background:var(--glass); box-shadow:var(--shadow); width:min(92vw,720px); }
+    .load-title { font-weight:900; letter-spacing:.6px; font-size: clamp(18px, 4.2vw, 30px); }
+    .load-sub { color:var(--muted); margin-top:6px; }
+    .progress { height:8px; margin-top:14px; border-radius:999px; background:#0e1430; border:1px solid #253160; overflow:hidden; }
+    .bar { height:100%; width:0%; background: linear-gradient(90deg, var(--cyan), var(--purple)); animation: bar 2.2s ease-out forwards; }
+    @keyframes bar { to { width:100%; } }
+    .bootlog { margin-top:12px; color:#c7d4ff; white-space:pre-wrap; }
+
+    /* App container (desktop window look) */
+    .app-wrap { display:grid; place-items:center; padding:20px; min-height:100dvh; background:linear-gradient(135deg, #0a0b10 0%, #0e111b 50%, #0a0b10 100%); }
+    .app-window {
+      width:min(1280px, 96vw);
+      min-height:75dvh;
+      border:1px solid var(--border);
+      border-radius:20px;
+      background:var(--glass);
+      box-shadow: 0 32px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(58,214,255,.05);
+      overflow:hidden;
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      position: relative;
+      backdrop-filter: blur(20px);
+    }
+
+    /* Gradient text */
+    .grad { 
+      background: linear-gradient(135deg, var(--cyan), var(--purple), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Button styles */
+    .btn { 
+      display:inline-flex; align-items:center; gap:6px;
+      padding:.6rem 1rem; border-radius:12px;
+      text-decoration:none; font-weight:700; font-size:14px;
+      border:1px solid #2b3c73; background:#12192b; color:var(--fg);
+      transition: all .2s ease;
+    }
+    .btn:hover { background:#152245; border-color:#3a5085; transform:translateY(-1px); }
+    .btn.primary { background:linear-gradient(135deg, var(--cyan), var(--purple)); border:none; color:#0a0b10; }
+    .btn.primary:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(58,214,255,.3); }
+
+    /* Subtle "tech pulse" accent on desktop free area */
+    .pulse {
+      position: absolute; right: -120px; bottom: -120px; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(90,169,255,.22), transparent 60%);
+      filter: blur(10px); opacity:.22; pointer-events:none;
+      animation: pulse 5.2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0% { transform: scale(0.95); opacity:.18 } 50% { transform: scale(1.05); opacity:.28 } 100% { transform: scale(0.95); opacity:.18 } }
+
+    .titlebar {
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:12px 18px;
+      background:linear-gradient(180deg, #0d1225 0%, #0a0f1f 100%);
+      border-bottom:1px solid var(--border);
+      box-shadow:0 2px 8px rgba(0,0,0,.3);
+    }
+    .traffic { display:grid; grid-auto-flow:column; gap:8px; }
+    .dot { width:12px; height:12px; border-radius:50%; background:#253160; }
+    .brand { display:flex; align-items:center; gap:8px; font-weight:900; letter-spacing:.6px; }
+    .pill { display:inline-block; padding:.28rem .6rem; border:1px solid #2b3a72; border-radius:999px; font-size:12px; background:#11183a; color:#c8d6ff; }
+    .menubar { display:flex; flex-wrap:wrap; gap:6px; }
+    .menubar a { color:var(--fg); text-decoration:none; padding:.48rem .72rem; border-radius:10px; font-weight:700; opacity:.95; }
+    .menubar a.active { border:1px solid #2b355a; background:#12192b; }
+
+    /* Content area */
+    .content { display:grid; grid-template-columns: 280px 1fr; gap:0; min-height:0; }
+    .sidebar {
+      border-right:1px solid var(--border);
+      background:#0f152e;
+      padding:16px;
+      display:grid; gap:8px;
+      overflow-y:auto;
+    }
+    .side-title { padding:8px 10px; color:#8ea4ea; font-weight:800; text-transform:uppercase; letter-spacing:.8px; font-size:12px; }
+    .side-link { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:.6rem .7rem; border-radius:10px; text-decoration:none; color:var(--fg); border:1px solid transparent; }
+    .side-link.active { background:#121b39; border-color:#2b3c73; }
+
+    /* Main area with page paddings */
+    .main { padding:24px; overflow:auto; }
+    .page { max-width: 1000px; margin: 0 auto; }
+    .title { font-weight:900; font-size: clamp(26px, 5.6vw, 44px); line-height:1.12; margin:0 0 10px; }
+    .lead { color:var(--muted); max-width:68ch; font-size: clamp(14px, 2.8vw, 18px); }
+    .k { margin:0 0 8px; color:var(--accent); letter-spacing:.6px; text-transform:uppercase; font-size:12px; font-weight:800; }
+    .p { color:var(--muted); }
+    .card { background:#0e1430; border:1px solid #27356a; border-radius:16px; padding:20px; transition:all .3s ease; }
+    .card:hover { border-color:#3a4a7a; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+
+    .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .grid-2 { display:grid; grid-template-columns:2fr 1fr; gap:12px; }
+    .rows { display:grid; gap:10px; }
+    .row { display:flex; justify-content:space-between; align-items:center; border:1px solid #26356b; border-radius:12px; padding:10px 12px; background:#0f1736; }
+
+    /* Terminal */
+    .term { background:#0c1022; border:1px solid #283154; border-radius:14px; }
+    .term-head { padding:10px 12px; border-bottom:1px solid #283154; display:flex; justify-content:space-between; align-items:center; }
+    .term-body { padding:12px; color:#b8c7ff; font-size:13px; white-space:pre-wrap; }
+
+    /* Section pager (for long pages on mobile) */
+    .pager { display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 14px; }
+    .pager a { text-decoration:none; color:#cfe1ff; border:1px solid #2b3c73; padding:.35rem .6rem; border-radius:10px; font-weight:700; transition:all .2s ease; }
+    .pager a.active, .pager a.primary { background:#12204a; border-color:#3a5085; }
+    .pager a:hover { background:#152245; border-color:#3a5085; transform:translateY(-1px); }
+
+    /* Bottom status bar */
+    .statusbar {
+      border-top:1px solid var(--border); background:#0d1225; color:#9db0ea;
+      display:flex; align-items:center; gap:10px; padding:8px 14px; font-size:12px;
+      justify-content:space-between; flex-wrap:wrap;
+    }
+    .status-group { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .status-item { display:inline-flex; gap:6px; align-items:center; padding:.2rem .5rem; border:1px solid #2a3770; border-radius:8px; background:#11183a; }
+
+    /* Large desktop screens */
+    @media (min-width: 1400px) {
+      .app-window { width:min(1400px, 94vw); }
+      .page { max-width: 1100px; }
+    }
+
+    /* Responsive adjustments for mobile readability */
+    @media (max-width: 980px) {
+      .app-wrap { padding:0; background:#0a0b10; }
+      .app-window { width:100vw; min-height:100dvh; border-radius:0; border:none; box-shadow:none; }
+      .content { grid-template-columns: 1fr; }
+      .sidebar { display:none; }
+      .main { padding:16px; }
+      .grid-3 { grid-template-columns:1fr; }
+      .grid-2 { grid-template-columns:1fr; }
+      .title { font-size: clamp(22px, 6vw, 32px); }
+      .lead { font-size: 15px; line-height: 1.7; }
+      .row { align-items:flex-start; flex-direction:column; gap:6px; }
+      .titlebar { padding:12px 16px; }
+      .pulse { display:none; }
+      .card { padding:16px; border-radius:14px; }
+      .alloc-bar { flex-direction:column; gap:2px; }
+      .alloc-segment { width:100%; height:32px; }
+    }
+
+    /* Token allocation chart styles */
+    .chart { position:relative; margin:16px 0; }
+    .alloc-bar { display:flex; gap:4px; border-radius:10px; overflow:hidden; margin-bottom:20px; }
+    .alloc-segment { flex:1; height:40px; position:relative; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; }
+    .seg-locked { background:linear-gradient(135deg, #5aa9ff, #7b61ff); color:#0a0b10; }
+    .seg-partners { background:linear-gradient(135deg, #3ad6ff, #5aa9ff); color:#0a0b10; }
+    .seg-presale { background:linear-gradient(135deg, #7b61ff, #a2ffef); color:#0a0b10; }
+    .seg-liquidity { background:linear-gradient(135deg, #a2ffef, #3ad6ff); color:#0a0b10; }
+    .seg-trading { background:linear-gradient(135deg, #3ad6ff, #7b61ff); color:#0a0b10; }
+    .alloc-labels { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+    .alloc-label { display:flex; align-items:center; gap:8px; }
+    .alloc-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+    .alloc-text { font-size:13px; color:var(--muted); }
+    .alloc-value { font-weight:800; color:var(--fg); font-size:18px; }
+
+    /* Scrollbar styling for modern look */
+    ::-webkit-scrollbar { width:8px; height:8px; }
+    ::-webkit-scrollbar-track { background:#0f152e; }
+    ::-webkit-scrollbar-thumb { background:#2b3c73; border-radius:4px; }
+    ::-webkit-scrollbar-thumb:hover { background:#3a5085; }
+
+    /* Active link styling */
+    .side-link:active, .btn:active { transform:scale(0.98); }
+
+    /* View transitions */
+    .view { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Spark line animation */
+    .spark svg path { stroke-dasharray: 200; stroke-dashoffset: 200; animation: draw 1.5s ease-out forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+  </style>
+</head>
+<body>
+  <!-- Loading screen -->
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <div class="load-card">
+      <div class="load-title">Launching MetaPulse AI — <span class="mono">Signal Console</span></div>
+      <div class="load-sub">Preparing UI surfaces… priming signal engines…</div>
+      <div class="progress"><div class="bar"></div></div>
+      <pre class="bootlog mono" id="bootlog">boot: attach sensors …
+boot: establish Solana streams …
+boot: warm analysis kernels …
+boot: finalize UI …</pre>
+    </div>
+  </div>
+
+  <div class="app-wrap">
+    <div class="app-window">
+      <div class="pulse" aria-hidden="true"></div>
+
+      <!-- Title bar -->
+      <header class="titlebar">
+        <div class="traffic"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <div class="brand">MetaPulse AI — <span class="mono">Signal Console</span> <span class="pill">Solana</span></div>
+        <nav class="menubar">
+          <a data-link href="#/">Home</a>
+          <a data-link href="#/tokens">Tokens</a>
+          <a data-link href="#/vision">Vision</a>
+          <a data-link href="#/developer">Developer</a>
+          <a data-link href="#/tests">Tests</a>
+          <a data-link href="#/presale">Presale</a>
+          <a class="btn" data-link href="#/whitepaper">Whitepaper</a>
+          <a class="btn primary" data-link href="#/launch">Launch dApp</a>
+        </nav>
+      </header>
+
+      <div class="content">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="side-title">Navigate</div>
+          <a class="side-link" href="#/" data-side>Home</a>
+          <a class="side-link" href="#/tokens" data-side>Tokens</a>
+          <a class="side-link" href="#/vision" data-side>Vision</a>
+          <a class="side-link" href="#/developer" data-side>Developer</a>
+          <a class="side-link" href="#/tests" data-side>Tests</a>
+          <a class="side-link" href="#/presale" data-side>Presale</a>
+          <a class="side-link" href="#/whitepaper" data-side>Whitepaper</a>
+          <a class="side-link" href="#/join" data-side>Join</a>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+          <!-- HOME -->
+          <section id="view-home" class="view active page">
+            <div class="pager">
+              <a href="#/whitepaper">Read Whitepaper</a>
+              <a href="#/tokens">See Tokens</a>
+              <a href="#/presale" class="primary">Join Presale</a>
+            </div>
+            <h1 class="title">Human‑grade market intelligence for <span class="grad">Solana</span>.</h1>
+            <p class="lead mono" id="typewriter"></p>
+            <div style="margin:24px 0;">
+              <a class="btn primary" href="#/presale" style="font-size:16px; padding:12px 24px;">Join Presale Now</a>
+              <a class="btn" href="#/launch" style="font-size:16px; padding:12px 24px;">Launch dApp</a>
+            </div>
+
+            <div class="grid-3" style="margin-top:12px;">
+              <div class="card"><div class="k">Signals that matter</div><p class="p mono">Price/volume/liquidity anomalies, noise-filtered and readable.</p></div>
+              <div class="card"><div class="k">Analyst summaries</div><p class="p mono">Short, neutral, clear. No hype. No advice.</p></div>
+              <div class="card"><div class="k">Watchlists & filters</div><p class="p mono">Personal thresholds, saved views, and searchable archives.</p></div>
+            </div>
+
+            <div class="grid-2" style="margin-top:12px;">
+              <div class="term">
+                <div class="term-head"><span class="mono" style="opacity:.85">terminal — metapulse.log</span><span class="pill mono">session: live</span></div>
+                <pre class="term-body mono" id="console">$ connect --network solana
+$ pull --streams price volume liq social
+$ analyze --window 5m --thresholds adaptive
+$ summarize --format analyst --tone neutral</pre>
+              </div>
+              <div class="card">
+                <div class="k">Project Links</div>
+                <div class="rows">
+                  <div class="row"><strong>DexScreener</strong><a class="btn" target="_blank" rel="noopener" href="https://dexscreener.com">Open</a></div>
+                  <div class="row"><strong>Telegram Group</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAI">Open</a></div>
+                  <div class="row"><strong>Telegram Bot</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAIBot">Open</a></div>
+                  <div class="row"><strong>Twitter / X</strong><a class="btn" target="_blank" rel="noopener" href="https://twitter.com/MetaPulse_AI">Open</a></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- WHITEPAPER -->
+          <section id="view-whitepaper" class="view page">
+            <h1 class="title">Whitepaper (Non‑technical)</h1>
+            <div class="card">
+              <div class="k">Purpose</div>
+              <p class="p">MetaPulse AI organizes live market micro‑structure and public social activity on Solana into readable, timely signals.</p>
+              <div class="k">Pillars</div>
+              <ul class="p">
+                <li><span class="mono">Detection:</span> anomalies & new pairs</li>
+                <li><span class="mono">Momentum:</span> social spikes with influence weighting</li>
+                <li><span class="mono">Explainability:</span> concise neutral summaries</li>
+                <li><span class="mono">Control:</span> watchlists & alert filters</li>
+              </ul>
+              <div class="k">Ethics</div>
+              <ul class="p">
+                <li>Neutral tone; transparent language</li>
+                <li>Opt‑out & throttling to reduce fatigue</li>
+                <li>Always “Not financial advice.”</li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- TOKENS -->
+          <section id="view-tokens" class="view page">
+            <h1 class="title">Tokens — Top · Trending · HOT Metas</h1>
+            <div class="card"><div class="rows" id="top-list"></div></div>
+            <div class="card" style="margin-top:10px;"><div class="rows" id="trend-list"></div></div>
+            <div class="card" style="margin-top:10px;"><div class="rows" id="meta-list"></div><p class="mono p">Legend: Δ5m = 5‑minute change · Heat = theme momentum</p></div>
+          </section>
+
+          <!-- VISION -->
+          <section id="view-vision" class="view page">
+            <h1 class="title">Vision — Expansion Plans</h1>
+            <div class="grid-3" style="margin-top:10px;">
+              <div class="card"><div class="k">Launchpad</div><p class="p mono">Curated, transparent listings with signal‑grade metrics at T‑0.</p></div>
+              <div class="card"><div class="k">Token Factory</div><p class="p mono">Template‑based token creation with safety rails and metadata verification.</p></div>
+              <div class="card"><div class="k">Multi‑Chain</div><p class="p mono">Extend coverage to other chains while keeping Solana‑first latency.</p></div>
+              <div class="card"><div class="k">Native Wallet</div><p class="p mono">Research‑centric wallet with watchlists, alert recipes, and overlays.</p></div>
+              <div class="card"><div class="k">Farming App</div><p class="p mono">Non‑custodial LP/points/airdrop trackers and risk‑aware dashboards.</p></div>
+              <div class="card"><div class="k">MetaPulse Chain</div><p class="p mono">A research chain for analytics and data availability.</p></div>
+            </div>
+          </section>
+
+          <!-- DEVELOPER -->
+          <section id="view-developer" class="view page">
+            <h1 class="title">Developer — BroIsCoding (Psychological AI Resume)</h1>
+            <div class="grid-2" style="margin-top:10px;">
+              <div class="card">
+                <div class="k">Summary</div>
+                <p class="p mono">Systems thinker and full‑stack builder. Hyper‑creative under pressure; converts chaos into shippable artifacts. Prefers deterministic pipelines and measurable outcomes. Values brevity, clarity, and shipping.</p>
+                <div class="k">Core Traits</div>
+                <ul class="p mono">
+                  <li>Pattern‑driven reasoning; anticipates edge cases early</li>
+                  <li>AI‑human hybrid ideation; expands then constrains</li>
+                  <li>Execution bias; designs for deployment from day one</li>
+                  <li>Resilience; momentum through uncertainty</li>
+                  <li>Humor in chaos; sustainable pace</li>
+                </ul>
+              </div>
+              <div class="card">
+                <div class="k">Operating Modes</div>
+                <ul class="p mono">
+                  <li><strong>Architect:</strong> boundaries, contracts, failure modes</li>
+                  <li><strong>Implementer:</strong> end‑to‑end vertical slices, no MVP crutches</li>
+                  <li><strong>Custodian:</strong> UX refinement, observability, rate‑limit safety</li>
+                </ul>
+                <div class="k">Collaboration</div>
+                <ul class="p mono">
+                  <li>Actionable specs and checklists</li>
+                  <li>Automates toil; documents intent not trivia</li>
+                  <li>Optimized for testability and fast rollback</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- TESTS -->
+          <section id="view-tests" class="view page">
+            <h1 class="title">Testing Phases</h1>
+            <div class="card">
+              <ul class="p mono">
+                <li><strong>Open Beta Test #1:</strong> completed successfully.</li>
+                <li><strong>Ongoing:</strong> smaller closed/public tests during development.</li>
+                <li><strong>Access:</strong> free for everyone during active test windows.</li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- PRESALE -->
+          <section id="view-presale" class="view page">
+            <h1 class="title">Presale — <span class="grad">$PULSEAI</span></h1>
+            <div class="lead" style="margin-bottom:24px;">Join the presale and secure your $PULSEAI tokens with transparent allocation and vesting.</div>
+            
+            <div class="grid-2" style="margin-top:10px;">
+              <div class="card">
+                <div class="k">Pricing</div>
+                <ul class="p mono">
+                  <li>Rate: <strong>1 SOL = 2.5M $PULSEAI</strong></li>
+                  <li>Soft Cap: 250 SOL</li>
+                  <li>Hard Cap: 400 SOL</li>
+                </ul>
+                <div class="k">Allocation Breakdown</div>
+                <div class="chart">
+                  <div class="alloc-bar">
+                    <div class="alloc-segment seg-locked">30%</div>
+                    <div class="alloc-segment seg-partners">10%</div>
+                    <div class="alloc-segment seg-presale">30%</div>
+                    <div class="alloc-segment seg-liquidity">20%</div>
+                    <div class="alloc-segment seg-trading">10%</div>
+                  </div>
+                  <div class="alloc-labels">
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #5aa9ff, #7b61ff);"></div>
+                      <div>
+                        <div class="alloc-value">30%</div>
+                        <div class="alloc-text">Locked (migrations)</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #3ad6ff, #5aa9ff);"></div>
+                      <div>
+                        <div class="alloc-value">10%</div>
+                        <div class="alloc-text">Partners</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #7b61ff, #a2ffef);"></div>
+                      <div>
+                        <div class="alloc-value">30%</div>
+                        <div class="alloc-text">Presale</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #a2ffef, #3ad6ff);"></div>
+                      <div>
+                        <div class="alloc-value">20%</div>
+                        <div class="alloc-text">Liquidity</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #3ad6ff, #7b61ff);"></div>
+                      <div>
+                        <div class="alloc-value">10%</div>
+                        <div class="alloc-text">Trading & Dev</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="k">Vesting Schedule</div>
+                <ul class="p mono">
+                  <li><strong>Locked (30%):</strong> Released monthly over 1-month periods for future migrations</li>
+                  <li><strong>Partners (10%):</strong> Team and partnerships allocation</li>
+                  <li><strong>Presale (30%):</strong> Available to participants at launch</li>
+                  <li><strong>Liquidity (20%):</strong> Initial and future liquidity provision</li>
+                  <li><strong>Trading & Dev (10%):</strong> Ongoing development and trading operations</li>
+                </ul>
+                <div class="k">Important Notes</div>
+                <ul class="p mono">
+                  <li>Solana mainnet verification at launch</li>
+                  <li>Transparent tokenomics with public allocation</li>
+                  <li>Secure smart contract with built-in vesting</li>
+                  <li>Community-driven governance access</li>
+                </ul>
+                <div class="rows" style="margin-top:12px;">
+                  <div class="row"><strong>Telegram Group</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAI">Open</a></div>
+                  <div class="row"><strong>Telegram Bot</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAIBot">Open</a></div>
+                  <div class="row"><strong>DexScreener</strong><a class="btn" target="_blank" rel="noopener" href="https://dexscreener.com">Open</a></div>
+                  <div class="row"><strong>Whitepaper</strong><a class="btn primary" href="#/whitepaper">Read</a></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- JOIN -->
+          <section id="view-join" class="view page">
+            <h1 class="title">Join</h1>
+            <div class="card" style="display:flex; gap:10px; flex-wrap:wrap">
+              <a class="btn primary" target="_blank" rel="noopener" href="https://t.me/MetaPulseAIBot">Open Telegram Bot</a>
+              <a class="btn" href="#/">Back Home</a>
+            </div>
+          </section>
+
+          <!-- LAUNCH -->
+          <section id="view-launch" class="view page">
+            <h1 class="title">dApp Shell</h1>
+            <div class="card">
+              <p class="p mono">Unified entry for accounts, tokens, and actions. Connect flows and account linking will appear here.</p>
+              <div class="rows" style="margin-top:10px">
+                <div class="row"><strong>View Tokens</strong><a class="btn" href="#/tokens">Open</a></div>
+                <div class="row"><strong>Read Whitepaper</strong><a class="btn" href="#/whitepaper">Open</a></div>
+                <div class="row"><strong>View Vision</strong><a class="btn" href="#/vision">Open</a></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Status bar -->
+      <footer class="statusbar">
+        <div class="status-group">
+          <span class="status-item mono">env: solana</span>
+          <span class="status-item mono">session: live</span>
+          <span class="status-item mono">rate-limit: free-tier</span>
+        </div>
+        <div class="status-group">
+          <span class="mono">© MetaPulse AI · Not financial advice</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    /* Router */
+    const V={'':'view-home','/':'view-home','/whitepaper':'view-whitepaper','/tokens':'view-tokens','/vision':'view-vision','/developer':'view-developer','/tests':'view-tests','/presale':'view-presale','/join':'view-join','/launch':'view-launch'};
+    function route(){
+      const hash=location.hash.replace('#','')||'/';
+      const id=V[hash]||'view-home';
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      const el=document.getElementById(id);
+      if(el){ el.classList.add('active'); el.scrollIntoView({behavior:'instant', block:'start'}); }
+      document.querySelectorAll('.menubar a').forEach(a=>a.classList.remove('active'));
+      const act=document.querySelector('.menubar a[href="#'+hash+'"]'); if(act) act.classList.add('active');
+      document.querySelectorAll('[data-side]').forEach(a=>a.classList.remove('active'));
+      const sid=document.querySelector('.sidebar [href="#'+hash+'"]'); if(sid) sid.classList.add('active');
+    }
+    window.addEventListener('hashchange', route);
+
+    /* Loading control */
+    const MIN_LOADING_MS=1900; let t0=performance.now();
+    function hideLoader(){
+      const loading=document.getElementById('loading');
+      const dt=performance.now()-t0; const wait=Math.max(0, MIN_LOADING_MS-dt);
+      setTimeout(()=> loading.classList.add('hidden'), wait);
+    }
+    window.addEventListener('load', hideLoader);
+
+    /* Boot log additions */
+    const boot=document.getElementById('bootlog');
+    const extra=[ "boot: connect wallet adapter …", "boot: ready." ];
+    let bi=0; function bootStep(){ if(bi<extra.length){ boot.textContent += "\\n" + extra[bi++]; setTimeout(bootStep, 260);} }
+    window.addEventListener('DOMContentLoaded', ()=>{ route(); setTimeout(bootStep, 360); });
+
+    /* Typewriter */
+    const lines=[ "Signals you can read. Decisions you can own.", "Console discipline. Dashboard clarity.", "Built for Solana. Designed for humans." ];
+    const tw=document.getElementById('typewriter'); let li=0, ci=0, erasing=false;
+    function typeTick(){ const s=lines[li];
+      if(!erasing){ tw.textContent=s.slice(0, ++ci); if(ci===s.length){ erasing=true; setTimeout(typeTick, 1100); return; } }
+      else { tw.textContent=s.slice(0, --ci); if(ci===0){ erasing=false; li=(li+1)%lines.length; } }
+      setTimeout(typeTick, erasing? 28 : 32);
+    }
+    window.addEventListener('DOMContentLoaded', ()=> setTimeout(typeTick, 700));
+
+    /* Tokens placeholder with sparkline */
+    function spark(vals){ const w=120,h=28,p=2; const min=Math.min(...vals), max=Math.max(...vals); const n=v=>h-p-((v-min)/(max-min||1))*(h-2*p);
+      let d=`M ${p} ${n(vals[0])}`; const step=(w-2*p)/(vals.length-1||1); for(let i=1;i<vals.length;i++) d+=` L ${p+i*step} ${n(vals[i])}`;
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="#3ad6ff" stroke-width="2"/></svg>`;
+    }
+    function row(sym, text, vals){ return `<div class="row"><div><strong>${sym}</strong><div class="mono" style="color:var(--muted)">${text}</div></div><span class="spark">${spark(vals)}</span></div>`; }
+    function hydrate(){
+      const top=document.getElementById('top-list');
+      const trend=document.getElementById('trend-list');
+      const meta=document.getElementById('meta-list');
+      if(top) top.innerHTML = row("ABC", "$0.0019 · Δ5m +4% · Vol24h $804k · Liq $1.20m",[3,3.2,3.1,3.6,3.9,4.1,4.2,4.0,4.4,4.8])
+                           + row("XYZ", "$0.0000 · Δ5m −2% · Vol24h $111k · Liq $220k",[2,2.1,2.0,2.2,2.35,2.3,2.25,2.4,2.38,2.31]);
+      if(trend) trend.innerHTML = row("PLS","SpikeScore 7.2 · Δ5m 12% · Trades5m 312 · Social 8/10",[1,1.1,1.2,1.5,1.9,2.4,2.2,2.5,2.7,2.9]);
+      if(meta) meta.innerHTML = row("AI/Agents","PULSE, AIBOT, NEXUS · Heat 7/10",[4,4.2,4.5,4.7,4.9,5.1,5.2,5.0,5.3,5.6])
+                         + row("Gaming","DRACO, PIXEL, ARENA · Heat 6/10",[3.3,3.4,3.6,3.55,3.7,3.9,4.0,3.8,3.9,4.1]);
+    }
+    window.addEventListener('DOMContentLoaded', hydrate);
+  </script>
+</body>
+</html>

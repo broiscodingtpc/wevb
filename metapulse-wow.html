@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>MetaPulse AI — Signal Console | Human-grade market intelligence for Solana</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="MetaPulse AI provides human-grade market intelligence for Solana. Real-time signals, analytics, and a comprehensive signal console for traders and investors." />
+  <meta name="keywords" content="Solana, cryptocurrency, trading, AI analytics, blockchain, signals, market intelligence, crypto trading" />
+  <meta name="author" content="MetaPulse AI" />
+  <meta name="robots" content="index, follow" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="MetaPulse AI — Signal Console" />
+  <meta property="og:description" content="Human-grade market intelligence for Solana" />
+  <meta property="og:site_name" content="MetaPulse AI" />
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MetaPulse AI — Signal Console" />
+  <meta name="twitter:description" content="Human-grade market intelligence for Solana" />
+  
+  <!-- Theme and Favicon -->
+  <meta name="theme-color" content="#0b0b12" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='none' stroke='%237b61ff' stroke-width='8'/><circle cx='50' cy='50' r='25' fill='%233ad6ff'/></svg>" />
+  
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  
+  <style>
+    /* Theme Variables */
+    :root {
+      --bg-0:#0a0b10; --bg-1:#0e111b;
+      --fg:#e9eeff;   --muted:#a9b6e0;
+      --cyan:#3ad6ff; --blue:#5aa9ff; --purple:#7b61ff; --accent:#a2ffef;
+      --border:#1f2a48; --panel:#12172a; --panel-2:#0f1426;
+      --glass: linear-gradient(180deg, rgba(22,28,54,.85), rgba(13,19,38,.75));
+      --shadow: 0 24px 60px rgba(0,0,0,.55);
+      --transition-fast: 180ms;
+      --transition-med: 280ms;
+      --transition-slow: 350ms;
+    }
+
+    /* Base Styles */
+    html, body { height:100%; margin:0; }
+    body {
+      color:var(--fg);
+      background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
+    
+    /* Accessibility: Reduced Motion Support */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Loading Screen */
+    .loading { 
+      position:fixed; inset:0; display:grid; place-items:center; z-index:9999; background:#0a0b10;
+      transition: opacity var(--transition-slow) ease, visibility var(--transition-slow) ease; 
+    }
+    .loading.hidden { opacity:0; visibility:hidden; }
+    .load-card { 
+      padding:32px; border-radius:20px; border:1px solid var(--border); 
+      background:var(--glass); box-shadow:var(--shadow); width:min(92vw,720px);
+      backdrop-filter: blur(20px);
+    }
+    .load-title { 
+      font-weight:900; letter-spacing:.8px; font-size: clamp(20px, 4.5vw, 32px);
+      background: linear-gradient(135deg, var(--cyan), var(--purple), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .load-sub { color:var(--muted); margin-top:8px; font-size:14px; }
+    .progress { 
+      height:10px; margin-top:18px; border-radius:999px; 
+      background:#0e1430; border:1px solid #253160; overflow:hidden; 
+    }
+    .bar { 
+      height:100%; width:0%; 
+      background: linear-gradient(90deg, var(--cyan), var(--purple)); 
+      animation: bar 2.2s ease-out forwards; 
+    }
+    @keyframes bar { to { width:100%; } }
+    .bootlog { 
+      margin-top:16px; color:#c7d4ff; font-size:13px; 
+      line-height:1.6; white-space:pre-wrap; 
+    }
+
+    /* Main Container */
+    .app-wrap { 
+      min-height:100dvh; 
+      background:#070a14;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .app-wrap::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.015) 0,
+        rgba(255,255,255,0.015) 1px,
+        transparent 1px,
+        transparent 40px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,0.015) 0,
+        rgba(255,255,255,0.015) 1px,
+        transparent 1px,
+        transparent 40px
+      );
+      opacity: 0.5;
+      animation: gridPulse 10s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    @keyframes gridPulse {
+      0%, 100% { opacity: 0.75; transform: translate(0, 0); }
+      50% { opacity: 1; transform: translate(2px, 2px); }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      .app-wrap::before { animation: none; opacity: 0.5; }
+    }
+
+    /* Aurora Background Canvas */
+    .aurora-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+    
+    .app-window {
+      position: relative;
+      z-index: 2;
+      min-height:100dvh;
+      display:flex;
+      flex-direction:column;
+      background: rgba(7, 10, 20, 0.3);
+    }
+
+    /* Gradient Text */
+    .grad { 
+      background: linear-gradient(135deg, var(--cyan), var(--purple), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Subtle Tech Pulse (Desktop Only) */
+    .pulse {
+      position: absolute; right: -120px; bottom: -120px; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(90,169,255,.22), transparent 60%);
+      filter: blur(12px); opacity:.22; pointer-events:none;
+      animation: pulse 5.2s ease-in-out infinite;
+    }
+    @keyframes pulse { 
+      0% { transform: scale(0.95); opacity:.18 } 
+      50% { transform: scale(1.05); opacity:.28 } 
+      100% { transform: scale(0.95); opacity:.18 } 
+    }
+
+    /* Dev Banner Animation */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(123, 97, 255, 0.2); }
+      50% { box-shadow: 0 0 30px rgba(123, 97, 255, 0.4), 0 0 50px rgba(90, 169, 255, 0.2); }
+    }
+    .dev-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #7b61ff;
+      box-shadow: 0 0 10px rgba(123, 97, 255, 0.8);
+      animation: blink-pulse 2s ease-in-out infinite;
+    }
+    @keyframes blink-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* Titlebar */
+    .titlebar {
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:14px 20px;
+      background:linear-gradient(180deg, #0d1225 0%, #0a0f1f 100%);
+      border-bottom:1px solid var(--border);
+      box-shadow:0 2px 8px rgba(0,0,0,.3);
+      position:sticky;
+      top:0;
+      z-index:100;
+    }
+    .traffic { display:grid; grid-auto-flow:column; gap:8px; }
+    .dot { width:12px; height:12px; border-radius:50%; background:#253160; }
+    .brand { 
+      display:flex; align-items:center; gap:10px; 
+      font-weight:900; letter-spacing:.6px; font-size:clamp(12px, 2vw, 16px);
+    }
+    .pill { 
+      display:inline-block; padding:.32rem .64rem; border:1px solid #2b3a72; 
+      border-radius:999px; font-size:12px; background:#11183a; color:#c8d6ff; 
+      font-weight:700;
+    }
+    
+    /* Menubar */
+    .menubar { display:none; } /* Hidden on desktop, shown on mobile */
+    .menubar a { 
+      color:var(--fg); text-decoration:none; padding:.52rem .8rem; 
+      border-radius:12px; font-weight:700; font-size:13px;
+      transition: all var(--transition-fast) ease;
+      outline: none;
+    }
+    .menubar a:hover { background:#12192b; }
+    .menubar a.active { border:1px solid #2b355a; background:#12192b; }
+    .menubar a:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+
+    /* Content Area */
+    .content { display:grid; grid-template-columns: 1fr; gap:0; min-height:0; }
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      max-width: 240px;
+      border-right:1px solid var(--border);
+      background:#0f152e;
+      padding:16px 12px;
+      display:grid; gap:6px;
+      overflow-y:auto;
+    }
+    .side-title { 
+      padding:6px 8px; color:#8ea4ea; font-weight:800; 
+      text-transform:uppercase; letter-spacing:.8px; font-size:11px;
+    }
+    .side-link { 
+      padding:.5rem .7rem; border-radius:10px; text-decoration:none; color:var(--fg); 
+      border:1px solid transparent; transition: all var(--transition-fast) ease;
+      outline: none;
+      font-size:13px;
+      font-weight:600;
+      display: block;
+      box-sizing: border-box;
+      min-height: 36px;
+    }
+    .side-link:hover { background:#121b39; border-color:#2b3c73; }
+    .side-link.active { background:#121b39; border-color:#3ad6ff; color:var(--cyan); }
+    .side-link:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+
+    /* Main Area */
+    .main { padding:32px; overflow:auto; }
+    .page { max-width: 1000px; margin: 0 auto; }
+    .title { 
+      font-weight:900; font-size: clamp(28px, 6vw, 46px); 
+      line-height:1.15; margin:0 0 14px; letter-spacing:-0.5px; 
+    }
+    .lead { 
+      color:var(--muted); max-width:70ch; 
+      font-size: clamp(15px, 3vw, 18px); line-height:1.7; 
+    }
+    .k { 
+      margin:0 0 8px; color:var(--accent); letter-spacing:.6px; 
+      text-transform:uppercase; font-size:12px; font-weight:800; 
+    }
+    .p { color:var(--muted); line-height:1.7; }
+    .p ul { margin:8px 0; padding-left:20px; }
+    .p li { margin:6px 0; }
+    .card { 
+      background:#0e1430; border:1px solid #27356a; border-radius:18px; 
+      padding:24px; transition:all var(--transition-med) ease;
+      backdrop-filter: blur(10px);
+    }
+    .card:hover { 
+      border-color:#3a4a7a; box-shadow:0 8px 24px rgba(0,0,0,.3); 
+      transform: translateY(-2px);
+    }
+
+    /* Grids */
+    .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .grid-2 { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+    .rows { display:grid; gap:12px; }
+    .row { 
+      display:flex; justify-content:space-between; align-items:center; 
+      border:1px solid #26356b; border-radius:14px; padding:14px 16px; background:#0f1736;
+      transition: all var(--transition-fast) ease;
+    }
+    .row:hover { border-color:#3a5085; background:#111b47; }
+
+    /* Terminal */
+    .term { 
+      background:#0c1022; border:1px solid #283154; border-radius:16px;
+      overflow: hidden;
+    }
+    .term-head { 
+      padding:12px 16px; border-bottom:1px solid #283154; 
+      display:flex; justify-content:space-between; align-items:center;
+      background:#0d1220;
+    }
+    .term-body { padding:16px; color:#b8c7ff; font-size:13px; white-space:pre-wrap; line-height:1.7; }
+
+    /* Section Pager */
+    .pager { display:flex; gap:10px; flex-wrap:wrap; margin: 14px 0 20px; }
+    .pager a { 
+      text-decoration:none; color:#cfe1ff; border:1px solid #2b3c73; 
+      padding:.4rem .72rem; border-radius:12px; font-weight:700; font-size:13px;
+      transition:all var(--transition-fast) ease;
+      outline: none;
+    }
+    .pager a.active, .pager a.primary { background:#12204a; border-color:#3a5085; }
+    .pager a:hover { background:#152245; border-color:#3a5085; transform:translateY(-1px); }
+    .pager a:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+
+    /* Buttons */
+    .btn { 
+      display:inline-flex; align-items:center; gap:8px; justify-content:center;
+      padding:.7rem 1.2rem; border-radius:14px;
+      text-decoration:none; font-weight:700; font-size:14px;
+      border:1px solid #2b3c73; background:#12192b; color:var(--fg);
+      transition: all var(--transition-fast) ease;
+      outline: none;
+      cursor: pointer;
+    }
+    .btn:hover { 
+      background:#152245; border-color:#3a5085; transform:translateY(-2px); 
+    }
+    .btn.primary { 
+      background:linear-gradient(135deg, var(--cyan), var(--purple)); 
+      border:none; color:#0a0b10; 
+    }
+    .btn.primary:hover { 
+      transform:translateY(-2px); box-shadow:0 8px 24px rgba(58,214,255,.3); 
+    }
+    .btn:active, .btn:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+
+    /* Status Bar */
+    .statusbar {
+      border-top:1px solid var(--border); background:#0d1225; color:#9db0ea;
+      display:flex; align-items:center; gap:12px; padding:10px 18px; font-size:12px;
+      justify-content:space-between; flex-wrap:wrap;
+    }
+    .status-group { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .status-item { 
+      display:inline-flex; gap:6px; align-items:center; padding:.3rem .6rem; 
+      border:1px solid #2a3770; border-radius:10px; background:#11183a; 
+    }
+
+    /* Command Palette */
+    .palette {
+      position:fixed; inset:0; z-index:10000; display:none; place-items:center;
+      background:rgba(0,0,0,.75); backdrop-filter:blur(8px);
+      animation: paletteFadeIn var(--transition-med) ease;
+    }
+    .palette.open { display:grid; }
+    @keyframes paletteFadeIn { from { opacity:0; } to { opacity:1; } }
+    .palette-box {
+      width:min(600px, 90vw); max-height:70vh;
+      background:#0a0b10; border:1px solid var(--border); border-radius:20px;
+      box-shadow:0 24px 60px rgba(0,0,0,.75);
+      overflow:hidden; display:grid; grid-template-rows:auto 1fr;
+    }
+    .palette-input {
+      width:100%; padding:20px 24px; background:transparent; border:none;
+      color:var(--fg); font-size:16px; font-family:inherit; outline:none;
+    }
+    .palette-input::placeholder { color:var(--muted); }
+    .palette-list {
+      max-height:400px; overflow-y:auto; padding:8px;
+    }
+    .palette-item {
+      padding:12px 20px; border-radius:12px; cursor:pointer; 
+      transition:all var(--transition-fast) ease;
+      display:flex; align-items:center; gap:12px;
+    }
+    .palette-item:hover, .palette-item.selected {
+      background:#12192b; border:1px solid #2b3c73;
+    }
+    .palette-item-title { font-weight:700; color:var(--fg); }
+    .palette-item-desc { font-size:12px; color:var(--muted); }
+
+    /* Token Allocation Chart */
+    .chart { position:relative; margin:20px 0; }
+    .alloc-bar { 
+      display:flex; gap:4px; border-radius:12px; overflow:hidden; margin-bottom:24px; 
+    }
+    .alloc-segment { 
+      flex:1; height:44px; position:relative; display:flex; 
+      align-items:center; justify-content:center; font-weight:800; font-size:13px; 
+    }
+    .seg-locked { background:linear-gradient(135deg, #5aa9ff, #7b61ff); color:#0a0b10; }
+    .seg-partners { background:linear-gradient(135deg, #3ad6ff, #5aa9ff); color:#0a0b10; }
+    .seg-presale { background:linear-gradient(135deg, #7b61ff, #a2ffef); color:#0a0b10; }
+    .seg-liquidity { background:linear-gradient(135deg, #a2ffef, #3ad6ff); color:#0a0b10; }
+    .seg-trading { background:linear-gradient(135deg, #3ad6ff, #7b61ff); color:#0a0b10; }
+    .alloc-labels { 
+      display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px; 
+    }
+    .alloc-label { display:flex; align-items:center; gap:10px; }
+    .alloc-dot { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+    .alloc-text { font-size:13px; color:var(--muted); }
+    .alloc-value { font-weight:800; color:var(--fg); font-size:20px; }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar { width:10px; height:10px; }
+    ::-webkit-scrollbar-track { background:#0f152e; }
+    ::-webkit-scrollbar-thumb { background:#2b3c73; border-radius:6px; }
+    ::-webkit-scrollbar-thumb:hover { background:#3a5085; }
+
+    /* View Transitions */
+    .view { 
+      animation: fadeIn var(--transition-med) ease-in; 
+      display:none;
+    }
+    .view.active { display:block; }
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: translateY(8px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+
+    /* Sparkline Animation */
+    .spark svg path { 
+      stroke-dasharray: 200; stroke-dashoffset: 200; 
+      animation: draw 1.8s ease-out forwards; 
+    }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+
+
+    /* Large Desktop */
+    @media (min-width: 1400px) {
+      .page { max-width: 1100px; }
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 980px) {
+      .app-wrap { padding-bottom:60px; }
+      .content { grid-template-columns: 1fr; }
+      .sidebar { display:none; }
+      .menubar { display:none; }
+      .mobile-nav { display:flex; }
+      .main { padding:20px; padding-bottom:80px; }
+      .grid-3 { grid-template-columns:1fr; }
+      .grid-2 { grid-template-columns:1fr; }
+      .title { 
+        font-size: clamp(24px, 7vw, 34px); 
+        margin-bottom:12px; line-height:1.2;
+      }
+      .lead { font-size: 16px; line-height: 1.8; }
+      .row { 
+        align-items:flex-start; flex-direction:column; gap:10px; 
+        padding:12px 14px;
+      }
+      .titlebar { padding:12px 16px; flex-wrap: wrap; }
+      .pulse { display:none; }
+      .card { padding:18px; border-radius:16px; }
+      .alloc-bar { flex-direction:column; gap:4px; }
+      .alloc-segment { width:100%; height:36px; }
+      .bootlog { font-size:12px; }
+    }
+
+    /* Mobile Bottom Nav */
+    .mobile-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f152e;
+      border-top: 1px solid var(--border);
+      display: none;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 0;
+      z-index: 1000;
+      backdrop-filter: blur(20px);
+    }
+    .mobile-nav-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      transition: all var(--transition-fast) ease;
+      border-radius: 8px;
+    }
+    .mobile-nav-link:hover,
+    .mobile-nav-link.active {
+      color: var(--cyan);
+      background: rgba(58,214,255,0.1);
+    }
+
+    /* Extra Small Mobile */
+    @media (max-width: 480px) {
+      .menubar { justify-content:center; }
+      .menubar a { font-size:12px; padding:.45rem .6rem; }
+      .brand { font-size:11px; }
+      .main { padding:16px; }
+    }
+
+    /* MetaPulse Wallet Demo Styles */
+    .mwallet { 
+      max-width:520px; margin: 8px 0; 
+      font-family: Inter, system-ui, sans-serif; 
+    }
+    .mwallet .card { 
+      background:#0d1428; border:1px solid #26335f; 
+      padding:18px; border-radius:12px; color:#dfe9ff; 
+    }
+    .mwallet .row { 
+      display:flex; justify-content:space-between; 
+      align-items:center; gap:10px; margin-top:10px; 
+    }
+    .mwallet .mono { 
+      font-family: "IBM Plex Mono", monospace; 
+      color:#bcd5ff; 
+    }
+    .mwallet .addr { 
+      font-size:12px; letter-spacing:.6px; 
+      background:#091127; padding:8px; border-radius:8px; 
+      border:1px solid #1b2a4d; word-break:break-all; 
+    }
+    .mwallet .btn { 
+      padding:.5rem .75rem; border-radius:10px; 
+      border:1px solid #2b3a72; background:#0f1736; 
+      color:#dfe9ff; cursor:pointer; 
+      font-size:13px;
+      transition: all var(--transition-fast) ease;
+    }
+    .mwallet .btn:hover { 
+      background:#152245; border-color:#3a5085; 
+    }
+    .mwallet .btn.primary { 
+      background: linear-gradient(90deg,#2ecfff22,#7b61ff22); 
+      border-color:#3b4b84; 
+    }
+    .mwallet .btn.primary:hover { 
+      background: linear-gradient(90deg,#2ecfff33,#7b61ff33); 
+    }
+    .mwallet .small { 
+      font-size:12px; color:#9fb4e6; 
+    }
+    .mwallet .history { 
+      margin-top:12px; max-height:200px; overflow:auto; 
+      border-top:1px dashed #233159; padding-top:8px; 
+    }
+    .mwallet .tx { 
+      padding:8px; border-radius:8px; border:1px solid #233159; 
+      margin-bottom:8px; background:linear-gradient(180deg,#091229,#071022); 
+    }
+    .mwallet .status { 
+      font-size:12px; color:#9fb4e6; 
+    }
+    .mwallet input { 
+      font-size:13px;
+      transition: all var(--transition-fast) ease;
+    }
+    .mwallet input:focus { 
+      outline:none; border-color:#3a5085; 
+      background:#0a1522;
+    }
+    .mwallet .services-grid { 
+      display:grid; grid-template-columns:repeat(3, 1fr); 
+      gap:8px; margin-top:12px; 
+    }
+    .mwallet .service-card { 
+      padding:8px; border-radius:8px; 
+      border:1px solid #1f2a4d; background:#0a1228; 
+      font-size:11px; text-align:center; 
+    }
+    .mwallet .service-card.active { 
+      border-color:#3ad6ff; background:#0f193a; 
+    }
+
+    /* MagicBento Styles */
+    .bento-section {
+      position: relative;
+      user-select: none;
+      padding: 20px;
+    }
+    .card-grid {
+      display: grid;
+      gap: 12px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .magic-bento-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      aspect-ratio: 4/3;
+      min-height: 200px;
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(57, 46, 78, 0.8);
+      background: #060010;
+      font-weight: 300;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      --glow-x: 50%;
+      --glow-y: 50%;
+      --glow-intensity: 0;
+      --glow-radius: 200px;
+      --glow-color: 132, 0, 255;
+    }
+    .magic-bento-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    .magic-bento-card__header,
+    .magic-bento-card__content {
+      display: flex;
+      position: relative;
+      color: #fff;
+      z-index: 2;
+    }
+    .magic-bento-card__header {
+      gap: 12px;
+      justify-content: space-between;
+    }
+    .magic-bento-card__content {
+      flex-direction: column;
+    }
+    .magic-bento-card__label {
+      font-size: 14px;
+      color: rgba(132, 0, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .magic-bento-card__title {
+      font-weight: 400;
+      font-size: 20px;
+      margin: 0 0 8px 0;
+    }
+    .magic-bento-card__description {
+      font-size: 14px;
+      line-height: 1.6;
+      opacity: 0.8;
+    }
+    .magic-bento-card--border-glow::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      padding: 6px;
+      background: radial-gradient(
+        var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+        rgba(132, 0, 255, calc(var(--glow-intensity) * 0.8)) 0%,
+        rgba(132, 0, 255, calc(var(--glow-intensity) * 0.4)) 30%,
+        transparent 60%
+      );
+      border-radius: inherit;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: subtract;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1;
+    }
+    .magic-bento-card:hover {
+      box-shadow: 0 4px 20px rgba(46, 24, 78, 0.4), 0 0 30px rgba(132, 0, 255, 0.2);
+    }
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(132, 0, 255, 1);
+      box-shadow: 0 0 6px rgba(132, 0, 255, 0.6);
+      pointer-events: none;
+      z-index: 100;
+    }
+    @media (max-width: 599px) {
+      .card-grid { grid-template-columns: 1fr; padding: 12px; }
+      .magic-bento-card { min-height: 180px; }
+    }
+    @media (min-width: 600px) and (max-width: 1023px) {
+      .card-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      .card-grid { grid-template-columns: repeat(4, 1fr); }
+      .magic-bento-card:nth-child(3) { grid-column: span 2; grid-row: span 2; }
+      .magic-bento-card:nth-child(4) { grid-column: 1 / span 2; grid-row: 2 / span 2; }
+      .magic-bento-card:nth-child(6) { grid-column: 4; grid-row: 3; }
+    }
+
+    /* PillNav Styles */
+    .pill-nav-items {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 42px;
+      background: var(--panel);
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+    }
+    .pill-list {
+      list-style: none;
+      display: flex;
+      align-items: stretch;
+      gap: 3px;
+      margin: 0;
+      padding: 3px;
+      height: 100%;
+    }
+    .pill-list > li {
+      display: flex;
+      height: 100%;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 0 18px;
+      background: transparent;
+      color: var(--fg);
+      text-decoration: none;
+      border-radius: 9999px;
+      box-sizing: border-box;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 0;
+      white-space: nowrap;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .pill:hover {
+      background: var(--bg-1);
+    }
+    .pill.is-active {
+      background: var(--purple);
+      color: var(--fg);
+    }
+    .pill .hover-circle {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      border-radius: 50%;
+      background: var(--purple);
+      z-index: 1;
+      display: block;
+      pointer-events: none;
+      will-change: transform;
+    }
+    .pill .label-stack {
+      position: relative;
+      display: inline-block;
+      line-height: 1;
+      z-index: 2;
+    }
+    .pill .pill-label {
+      position: relative;
+      z-index: 2;
+      display: inline-block;
+      line-height: 1;
+      will-change: transform;
+    }
+    .pill .pill-label-hover {
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--fg);
+      z-index: 3;
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading" class="loading" role="status" aria-live="polite" aria-label="Loading MetaPulse AI">
+    <div class="load-card">
+      <div class="load-title">Launching MetaPulse AI — <span class="mono">Signal Console</span></div>
+      <div class="load-sub">Preparing UI surfaces… priming signal engines…</div>
+      <div class="progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        <div class="bar"></div>
+      </div>
+      <pre class="bootlog mono" id="bootlog">boot: attach sensors …
+boot: establish Solana streams …
+boot: warm analysis kernels …</pre>
+    </div>
+  </div>
+
+  <!-- Command Palette -->
+  <div id="palette" class="palette" role="dialog" aria-label="Command Palette" aria-modal="true">
+    <div class="palette-box">
+      <input 
+        type="text" 
+        id="palette-input" 
+        class="palette-input" 
+        placeholder="Search or navigate…"
+        aria-label="Search pages"
+        autocomplete="off"
+      />
+      <div class="palette-list" id="palette-list" role="listbox"></div>
+    </div>
+  </div>
+
+  <div class="app-wrap">
+    <canvas id="aurora-canvas" class="aurora-canvas"></canvas>
+    <div class="app-window">
+      <div class="pulse" aria-hidden="true"></div>
+
+      <!-- Titlebar -->
+      <header class="titlebar" role="banner">
+        <div class="traffic" aria-label="Window controls"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <div class="brand">MetaPulse AI — <span class="mono">Signal Console</span> <span class="pill">Solana</span></div>
+        <nav class="menubar pill-nav-items" role="navigation" aria-label="Main navigation">
+          <ul class="pill-list">
+            <li><a class="pill" data-link href="#/" aria-label="Home"><span class="pill-label">Home</span></a></li>
+            <li><a class="pill" data-link href="#/tokens" aria-label="Tokens"><span class="pill-label">Tokens</span></a></li>
+            <li><a class="pill" data-link href="#/vision" aria-label="Vision"><span class="pill-label">Vision</span></a></li>
+            <li><a class="pill" data-link href="#/presale" aria-label="Presale"><span class="pill-label">Presale</span></a></li>
+            <li><a class="pill" data-link href="#/whitepaper" aria-label="Whitepaper"><span class="pill-label">Whitepaper</span></a></li>
+            <li><a class="pill is-active" data-link href="#/launch" aria-label="Launch dApp"><span class="pill-label">Launch dApp</span></a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <div class="content">
+        <!-- Main Content -->
+        <main class="main" role="main" style="margin: 0 auto; max-width: 1200px;">
+          <!-- HOME -->
+          <section id="view-home" class="view active page" aria-labelledby="home-title">
+            <div class="pager">
+              <a href="#/whitepaper">Read Whitepaper</a>
+              <a href="#/tokens">See Tokens</a>
+              <a href="#/presale" class="primary">Join Presale</a>
+            </div>
+            <h1 id="home-title" class="title">Human‑grade market intelligence for <span class="grad">Solana</span>.</h1>
+            <p class="lead mono" id="typewriter" aria-live="polite">Signals you can read. Decisions you can own.</p>
+            <div style="margin:28px 0;">
+              <a class="btn primary" href="#/presale" aria-label="Join Presale Now">Join Presale Now</a>
+              <a class="btn" href="#/launch" aria-label="Launch dApp">Launch dApp</a>
+            </div>
+
+            <div class="card" style="margin-top:20px; border-color:#a2ffef; background:linear-gradient(135deg, rgba(162,255,239,0.08), rgba(58,214,255,0.05));">
+              <div class="k">New: MetaPulse AI Wallet</div>
+              <p class="p mono"><strong>Wallet Demo is live!</strong> Try our non-custodial demo wallet with integrated AI Analytics, Token Tracking, and Signal Console.</p>
+              <p class="p mono" style="margin-top:6px; font-size:12px;">Everything added step by step: AI tested → Wallet live → Analytics → Token Factory → Launchpad → Multi-Chain</p>
+              <a class="btn primary" href="#/launch" style="margin-top:8px; display:inline-block;">Try Wallet Demo</a>
+            </div>
+
+            <!-- Under Development Banner -->
+            <div class="card dev-banner" style="margin-top:20px; border-color:#7b61ff; background:linear-gradient(135deg, rgba(123,97,255,0.15), rgba(90,169,255,0.08)); animation:pulse-glow 3s ease-in-out infinite;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <div class="dev-indicator"></div>
+                <div class="k" style="margin:0;">Under Development</div>
+              </div>
+              <p class="p mono"><strong>Continuously Developing</strong></p>
+              <p class="p mono" style="margin-top:6px; font-size:13px; color:var(--muted);">
+                AI features and Bot functionality will be implemented soon. Stay tuned for updates!
+              </p>
+            </div>
+
+            <!-- MagicBento Grid -->
+            <div class="bento-section" style="margin-top:40px;">
+              <div class="card-grid">
+                <div class="magic-bento-card magic-bento-card--border-glow">
+                  <div class="magic-bento-card__header">
+                    <div class="magic-bento-card__label">Analytics</div>
+                  </div>
+                  <div class="magic-bento-card__content">
+                    <h2 class="magic-bento-card__title">Signals that matter</h2>
+                    <p class="magic-bento-card__description">Price/volume/liquidity anomalies, noise-filtered and readable.</p>
+                  </div>
+                </div>
+                <div class="magic-bento-card magic-bento-card--border-glow">
+                  <div class="magic-bento-card__header">
+                    <div class="magic-bento-card__label">Insights</div>
+                  </div>
+                  <div class="magic-bento-card__content">
+                    <h2 class="magic-bento-card__title">Analyst summaries</h2>
+                    <p class="magic-bento-card__description">Short, neutral, clear. No hype. No advice.</p>
+                  </div>
+                </div>
+                <div class="magic-bento-card magic-bento-card--border-glow">
+                  <div class="magic-bento-card__header">
+                    <div class="magic-bento-card__label">Dashboard</div>
+                  </div>
+                  <div class="magic-bento-card__content">
+                    <h2 class="magic-bento-card__title">Watchlists & filters</h2>
+                    <p class="magic-bento-card__description">Personal thresholds, saved views, and searchable archives.</p>
+                  </div>
+                </div>
+                <div class="magic-bento-card magic-bento-card--border-glow">
+                  <div class="magic-bento-card__header">
+                    <div class="magic-bento-card__label">Teamwork</div>
+                  </div>
+                  <div class="magic-bento-card__content">
+                    <h2 class="magic-bento-card__title">Collaboration</h2>
+                    <p class="magic-bento-card__description">Work together seamlessly with real-time data sharing.</p>
+                  </div>
+                </div>
+                <div class="magic-bento-card magic-bento-card--border-glow">
+                  <div class="magic-bento-card__header">
+                    <div class="magic-bento-card__label">Efficiency</div>
+                  </div>
+                  <div class="magic-bento-card__content">
+                    <h2 class="magic-bento-card__title">Automation</h2>
+                    <p class="magic-bento-card__description">Streamline workflows with smart alerts and triggers.</p>
+                  </div>
+                </div>
+                <div class="magic-bento-card magic-bento-card--border-glow">
+                  <div class="magic-bento-card__header">
+                    <div class="magic-bento-card__label">Protection</div>
+                  </div>
+                  <div class="magic-bento-card__content">
+                    <h2 class="magic-bento-card__title">Security</h2>
+                    <p class="magic-bento-card__description">Enterprise-grade protection for your data.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:20px;">
+              <div class="term">
+                <div class="term-head">
+                  <span class="mono" style="opacity:.85">terminal — metapulse.log</span>
+                  <span class="pill mono">session: live</span>
+                </div>
+                <pre class="term-body mono" id="console">$ connect --network solana
+$ pull --streams price volume liq social
+$ analyze --window 5m --thresholds adaptive
+$ summarize --format analyst --tone neutral</pre>
+              </div>
+              <div class="card">
+                <div class="k">Project Links</div>
+                <div class="rows">
+                  <div class="row"><strong>DexScreener</strong><a class="btn" target="_blank" rel="noopener" href="https://dexscreener.com">Open</a></div>
+                  <div class="row"><strong>Telegram Group</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAI">Open</a></div>
+                  <div class="row"><strong>Telegram Bot</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAIBot">Open</a></div>
+                  <div class="row"><strong>Twitter / X</strong><a class="btn" target="_blank" rel="noopener" href="https://twitter.com/MetaPulse_AI">Open</a></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- WHITEPAPER -->
+          <section id="view-whitepaper" class="view page" aria-labelledby="wp-title">
+            <h1 id="wp-title" class="title">MetaPulse AI — Signal Console Whitepaper</h1>
+            
+            <div class="card">
+              <div class="k">Abstract</div>
+              <p class="p">MetaPulse AI is a hybrid intelligence console designed to decode and humanize real-time market activity on Solana.</p>
+              <p class="p">It combines automated anomaly detection, sentiment analysis, and behavioral modeling to create signal clarity for traders, builders, and analysts.</p>
+              <p class="p">By merging a console-grade interface with a live dashboard, MetaPulse AI turns noise into readable insight — without speculation, bias, or hype.</p>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Mission Statement</div>
+              <p class="p">To deliver human-grade market intelligence — real, concise, and ethical — that empowers individuals to make data-driven decisions without relying on influencers or manipulation.</p>
+              <p class="p">We believe transparency, clarity, and usability should define crypto analytics.</p>
+              <p class="p">Our mission is to build a self-sustaining ecosystem that simplifies complex data into signals people can actually understand.</p>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Core Product — The Signal Console</div>
+              <p class="p">MetaPulse AI is a combined console + dashboard dApp running on Solana.</p>
+              <p class="p">It visualizes token trends, liquidity shifts, and on-chain social sentiment in a readable, explainable format.</p>
+              <div style="margin-top:16px;">
+                <div class="k">Key Features</div>
+                <ul class="p">
+                  <li><span class="mono">Adaptive Signal Engine</span> — Detects liquidity or volume anomalies within seconds.</li>
+                  <li><span class="mono">Explainable Summaries</span> — Auto-generated analyst notes in clear, neutral language.</li>
+                  <li><span class="mono">Console Mode</span> — For power users who prefer command-line clarity.</li>
+                  <li><span class="mono">Dashboard Mode</span> — For traders who prefer charts, filters, and curated data boards.</li>
+                  <li><span class="mono">Watchlists & Alerts</span> — Customizable thresholds for tokens, themes, or wallets.</li>
+                  <li><span class="mono">API Integration Layer</span> — Connects to DexScreener, PumpPortal, Groq, Gemini, and Twitter to form multi-angle sentiment analytics (later phases).</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Architecture Overview</div>
+              <p class="p">The system blends data streams into an internal AI inference engine, using weighted metrics for:</p>
+              <ul class="p">
+                <li>Liquidity & Volume flow</li>
+                <li>Social influence mapping</li>
+                <li>Micro-trend clustering</li>
+                <li>Sentiment momentum</li>
+                <li>Developer & holder pattern scoring</li>
+              </ul>
+              <p class="p">Signals are rendered in real time through the MetaPulse Console Interface, both on web and Telegram, under the same unified identity.</p>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Vision and Future Development</div>
+              <p class="p">MetaPulse AI is built for evolution. Each phase expands its analytical and utility reach:</p>
+              <div style="margin-top:16px;">
+                <div class="k">Launchpad</div>
+                <p class="p">Curated token launches scored by signal metrics at T-0. Projects are listed transparently with historical reference.</p>
+                <div class="k">Token Factory</div>
+                <p class="p">Safe and auditable token creation suite — allowing verified launches with embedded metadata and verified liquidity parameters.</p>
+                <div class="k">Multi-Chain Expansion</div>
+                <p class="p">While Solana remains our home, the MetaPulse model will extend to Ethereum, Sui, BSC, and emerging L2 ecosystems. Each chain will be monitored under the same logic tree to maintain parity.</p>
+                <div class="k">Native Wallet (MetaPulse Wallet)</div>
+                <p class="p">A research-centric wallet with: Watchlists, signal feeds, and account overlays; Real-time wallet health and liquidity risk scores; Custom signal recipes and airdrop alerts.</p>
+                <div class="k">Farming App</div>
+                <p class="p">Non-custodial farming and liquidity visualization dashboard. Helps users evaluate LP positions, farming APYs, and ecosystem rewards while managing exposure risk.</p>
+                <div class="k">MetaPulse Chain</div>
+                <p class="p">Long-term objective: a dedicated blockchain optimized for analytics, real-time data streams, and decentralized intelligence indexing.</p>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Ethical Principles</div>
+              <p class="p">MetaPulse AI is founded on four ethical pillars:</p>
+              <ul class="p">
+                <li><span class="mono">Neutrality</span> — The system describes, never predicts.</li>
+                <li><span class="mono">Transparency</span> — All visible metrics are sourced and timestamped.</li>
+                <li><span class="mono">Human Clarity</span> — Language is concise, explainable, and non-financial.</li>
+                <li><span class="mono">Respect for Mental Load</span> — Users can throttle data flow or opt-out of real-time alerts.</li>
+              </ul>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Developer Profile — BroIsCoding</div>
+              <p class="p">The MetaPulse ecosystem is engineered by BroIsCoding, a systems thinker and full-stack builder focused on deterministic results and long-term reliability.</p>
+              <div style="margin-top:16px;">
+                <div class="k">Cognitive & AI Profile Highlights</div>
+                <ul class="p">
+                  <li>Pattern-driven reasoning, early edge-case mapping</li>
+                  <li>AI-human hybrid ideation, creative in controlled chaos</li>
+                  <li>Execution-oriented, end-to-end builder — no MVP crutches</li>
+                  <li>Obsessed with clarity, architecture, and sustainable momentum</li>
+                  <li>Humor in uncertainty; thrives under high-pressure creative cycles</li>
+                </ul>
+                <p class="p mono">The developer's philosophy: "Ship clarity, not noise."</p>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Testing & Iteration</div>
+              <p class="p">The system is developed transparently through open and closed testing cycles:</p>
+              <ul class="p">
+                <li><span class="mono">Open Beta Test #1</span> — Completed successfully; verified interface stability.</li>
+                <li><span class="mono">Next Tests</span> — Focus on connection layers and telemetry safety.</li>
+                <li><span class="mono">Access</span> — All public beta phases are free and open to the community.</li>
+                <li><span class="mono">Goal</span> — Stability under concurrent users and multi-source data stress.</li>
+              </ul>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Roadmap</div>
+              <div style="margin-top:16px;">
+                <div class="k">Phase 1 — Foundation</div>
+                <ul class="p">
+                  <li>Core dApp interface (web + Telegram)</li>
+                  <li>Live console mode and typewriter hero</li>
+                  <li>Token data fetch and mock analytics</li>
+                  <li>Open Beta #1 + public release</li>
+                </ul>
+                <div class="k">Phase 2 — Expansion</div>
+                <ul class="p">
+                  <li>Integration with PumpPortal + DexScreener APIs</li>
+                  <li>Signal generation and adaptive scoring</li>
+                  <li>Launchpad and Token Factory prototypes</li>
+                  <li>Whitepaper public release + presale initiation</li>
+                </ul>
+                <div class="k">Phase 3 — Utility Integration</div>
+                <ul class="p">
+                  <li>MetaPulse Wallet and Farming app beta</li>
+                  <li>AI summarization with explainable outputs</li>
+                  <li>Staking and governance utilities</li>
+                  <li>CEX/DEX listing strategy</li>
+                </ul>
+                <div class="k">Phase 4 — Research & MetaPulse Chain</div>
+                <ul class="p">
+                  <li>Begin design of the analytics-focused L1 chain</li>
+                  <li>Cross-chain integration for analytics aggregation</li>
+                  <li>Partner integrations for institutional dashboards</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Disclaimer</div>
+              <p class="p">MetaPulse AI does not provide financial advice or price predictions.</p>
+              <p class="p">All analytics and signals are interpretive tools meant for education and market transparency.</p>
+              <p class="p">Users are responsible for their financial decisions.</p>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="k">Closing Statement</div>
+              <p class="p">MetaPulse AI is not a hype project — it's an engineered instrument for clarity.</p>
+              <p class="p">In a chaotic digital market, clarity is alpha.</p>
+              <p class="p">We build the tools that let you read the signal and ignore the noise.</p>
+              <p class="p mono" style="margin-top:16px;">Built for Solana. Designed for humans. Powered by BroIsCoding.</p>
+            </div>
+          </section>
+
+          <!-- TOKENS -->
+          <section id="view-tokens" class="view page" aria-labelledby="tokens-title">
+            <h1 id="tokens-title" class="title">Tokens — Top · Trending · HOT Metas</h1>
+            <div class="card"><div class="rows" id="top-list" role="list"></div></div>
+            <div class="card" style="margin-top:16px;"><div class="rows" id="trend-list" role="list"></div></div>
+            <div class="card" style="margin-top:16px;">
+              <div class="rows" id="meta-list" role="list"></div>
+              <p class="mono p">Legend: Δ5m = 5‑minute change · Heat = theme momentum</p>
+            </div>
+          </section>
+
+          <!-- VISION -->
+          <section id="view-vision" class="view page" aria-labelledby="vision-title">
+            <h1 id="vision-title" class="title">Vision — Expansion Plans</h1>
+            
+            <div class="card" style="margin-bottom:20px; border-color:#3ad6ff; background:linear-gradient(135deg, rgba(58,214,255,0.1), rgba(123,97,255,0.05));">
+              <div class="k">Now Live</div>
+              <p class="p mono"><strong>MetaPulse AI Wallet Demo</strong> — Non-custodial demo wallet with integrated AI Analytics, Token Tracking, and Signal Console. Try it in <a href="#/launch" style="color:#3ad6ff; text-decoration:underline;">Launch dApp</a>.</p>
+              <p class="p mono" style="margin-top:8px;">Everything will be added step by step. AI tested → Wallet live → Analytics → Token Factory → Launchpad → Multi-Chain. Built transparently with community feedback.</p>
+            </div>
+
+            <div class="grid-3" style="margin-top:16px;">
+              <div class="card">
+                <div class="k">Launchpad</div>
+                <p class="p mono">Curated, transparent listings with signal‑grade metrics at T‑0.</p>
+              </div>
+              <div class="card">
+                <div class="k">Token Factory</div>
+                <p class="p mono">Template‑based token creation with safety rails and metadata verification.</p>
+              </div>
+              <div class="card">
+                <div class="k">Multi‑Chain</div>
+                <p class="p mono">Extend coverage to other chains while keeping Solana‑first latency.</p>
+              </div>
+              <div class="card">
+                <div class="k">Native Wallet</div>
+                <p class="p mono">Demo live now. Research‑centric wallet with watchlists, alert recipes, and overlays.</p>
+              </div>
+              <div class="card">
+                <div class="k">Farming App</div>
+                <p class="p mono">Non‑custodial LP/points/airdrop trackers and risk‑aware dashboards.</p>
+              </div>
+              <div class="card">
+                <div class="k">MetaPulse Chain</div>
+                <p class="p mono">A research chain for analytics and data availability.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- DEVELOPER -->
+          <section id="view-developer" class="view page" aria-labelledby="dev-title">
+            <h1 id="dev-title" class="title">Developer — BroIsCoding (Psychological AI Resume)</h1>
+            <div class="grid-2" style="margin-top:16px;">
+              <div class="card">
+                <div class="k">Summary</div>
+                <p class="p mono">Systems thinker and full‑stack builder. Hyper‑creative under pressure; converts chaos into shippable artifacts. Prefers deterministic pipelines and measurable outcomes. Values brevity, clarity, and shipping.</p>
+                <div class="k">Core Traits</div>
+                <ul class="p mono">
+                  <li>Pattern‑driven reasoning; anticipates edge cases early</li>
+                  <li>AI‑human hybrid ideation; expands then constrains</li>
+                  <li>Execution bias; designs for deployment from day one</li>
+                  <li>Resilience; momentum through uncertainty</li>
+                  <li>Humor in chaos; sustainable pace</li>
+                </ul>
+              </div>
+              <div class="card">
+                <div class="k">Operating Modes</div>
+                <ul class="p mono">
+                  <li><strong>Architect:</strong> boundaries, contracts, failure modes</li>
+                  <li><strong>Implementer:</strong> end‑to‑end vertical slices, no MVP crutches</li>
+                  <li><strong>Custodian:</strong> UX refinement, observability, rate‑limit safety</li>
+                </ul>
+                <div class="k">Collaboration</div>
+                <ul class="p mono">
+                  <li>Actionable specs and checklists</li>
+                  <li>Automates toil; documents intent not trivia</li>
+                  <li>Optimized for testability and fast rollback</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- TESTS -->
+          <section id="view-tests" class="view page" aria-labelledby="tests-title">
+            <h1 id="tests-title" class="title">Testing Phases</h1>
+              <div class="card">
+                <ul class="p mono">
+                  <li><strong>Open Beta Test #1:</strong> completed successfully.</li>
+                  <li><strong>AI Signal Engine Test:</strong> completed successfully.</li>
+                  <li><strong>Wallet Demo:</strong> Live at <a href="#/launch" style="color:#3ad6ff;">Launch dApp</a></li>
+                  <li><strong>Ongoing:</strong> smaller closed/public tests during development.</li>
+                  <li><strong>Access:</strong> free for everyone during active test windows.</li>
+                </ul>
+              </div>
+              <div class="card" style="margin-top:16px; border-color:#3ad6ff; background:linear-gradient(135deg, rgba(58,214,255,0.1), rgba(123,97,255,0.05));">
+                <div class="k">Current Development Status</div>
+                <p class="p mono"><strong>AI Signal Engine</strong> — Tests passed, live</p>
+                <p class="p mono" style="margin-top:8px;"><strong>Wallet</strong> — Demo live</p>
+                <p class="p mono" style="margin-top:8px; opacity:0.7;"><strong>AI Analytics</strong> — In development</p>
+                <p class="p mono" style="margin-top:8px; opacity:0.7;"><strong>Token Factory</strong> — Coming next</p>
+                <p class="p mono" style="margin-top:8px; opacity:0.7;"><strong>Launchpad</strong> — Planned</p>
+                <p class="p mono" style="margin-top:8px; opacity:0.7;"><strong>Multi-Chain</strong> — Planned</p>
+              </div>
+          </section>
+
+          <!-- PRESALE -->
+          <section id="view-presale" class="view page" aria-labelledby="presale-title">
+            <h1 id="presale-title" class="title">Presale — <span class="grad">$PULSEAI</span></h1>
+            <div class="lead" style="margin-bottom:28px;">Join the presale and secure your $PULSEAI tokens with transparent allocation and vesting.</div>
+            
+            <div class="grid-2" style="margin-top:16px;">
+              <div class="card">
+                <div class="k">Pricing</div>
+                <ul class="p mono">
+                  <li>Rate: <strong>1 SOL = 2.5M $PULSEAI</strong></li>
+                  <li>Soft Cap: 250 SOL</li>
+                  <li>Hard Cap: 400 SOL</li>
+                </ul>
+                <div class="k">Allocation Breakdown</div>
+                <div class="chart">
+                  <div class="alloc-bar">
+                    <div class="alloc-segment seg-locked">30%</div>
+                    <div class="alloc-segment seg-partners">10%</div>
+                    <div class="alloc-segment seg-presale">30%</div>
+                    <div class="alloc-segment seg-liquidity">20%</div>
+                    <div class="alloc-segment seg-trading">10%</div>
+                  </div>
+                  <div class="alloc-labels">
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #5aa9ff, #7b61ff);"></div>
+                      <div>
+                        <div class="alloc-value">30%</div>
+                        <div class="alloc-text">Locked (migrations)</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #3ad6ff, #5aa9ff);"></div>
+                      <div>
+                        <div class="alloc-value">10%</div>
+                        <div class="alloc-text">Partners</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #7b61ff, #a2ffef);"></div>
+                      <div>
+                        <div class="alloc-value">30%</div>
+                        <div class="alloc-text">Presale</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #a2ffef, #3ad6ff);"></div>
+                      <div>
+                        <div class="alloc-value">20%</div>
+                        <div class="alloc-text">Liquidity</div>
+                      </div>
+                    </div>
+                    <div class="alloc-label">
+                      <div class="alloc-dot" style="background:linear-gradient(135deg, #3ad6ff, #7b61ff);"></div>
+                      <div>
+                        <div class="alloc-value">10%</div>
+                        <div class="alloc-text">Bot Trading & Dev</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="k">Vesting Schedule</div>
+                <ul class="p mono">
+                  <li><strong>Locked (30%):</strong> Released monthly over 1-month periods for future migrations</li>
+                  <li><strong>Partners (10%):</strong> Team and partnerships allocation</li>
+                  <li><strong>Presale (30%):</strong> Available to participants at launch</li>
+                  <li><strong>Liquidity (20%):</strong> Initial and future liquidity provision</li>
+                  <li><strong>Bot Trading & Dev (10%):</strong> Ongoing development and trading operations</li>
+                </ul>
+                <div class="k">Important Notes</div>
+                <ul class="p mono">
+                  <li>Solana mainnet verification at launch</li>
+                  <li>Transparent tokenomics with public allocation</li>
+                  <li>Secure smart contract with built-in vesting</li>
+                  <li>Community-driven governance access</li>
+                </ul>
+                <div class="rows" style="margin-top:16px;">
+                  <div class="row"><strong>Telegram Group</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAI">Open</a></div>
+                  <div class="row"><strong>Telegram Bot</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAIBot">Open</a></div>
+                  <div class="row"><strong>DexScreener</strong><a class="btn" target="_blank" rel="noopener" href="https://dexscreener.com">Open</a></div>
+                  <div class="row"><strong>Whitepaper</strong><a class="btn primary" href="#/whitepaper">Read</a></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- JOIN -->
+          <section id="view-join" class="view page" aria-labelledby="join-title">
+            <h1 id="join-title" class="title">Join</h1>
+            <div class="card">
+              <div class="k">Community Links</div>
+              <div class="rows" style="margin-top:12px;">
+                <div class="row"><strong>Telegram Group</strong><a class="btn primary" target="_blank" rel="noopener" href="https://t.me/metapulseai">Join</a></div>
+                <div class="row"><strong>Twitter / X</strong><a class="btn primary" target="_blank" rel="noopener" href="https://x.com/METAPULSaibot">Follow</a></div>
+                <div class="row"><strong>Telegram Bot</strong><a class="btn" target="_blank" rel="noopener" href="https://t.me/MetaPulseAIBot">Open</a></div>
+              </div>
+              <div style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap">
+                <a class="btn" href="#/" aria-label="Back Home">Back Home</a>
+              </div>
+            </div>
+          </section>
+
+          <!-- LAUNCH -->
+          <section id="view-launch" class="view page" aria-labelledby="launch-title">
+            <h1 id="launch-title" class="title">dApp Shell</h1>
+            
+            <!-- MetaPulse AI Wallet Demo -->
+            <div id="metapulse-wallet" class="mwallet">
+              <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                  <div>
+                    <div style="font-weight:900; font-size:16px; color:#3ad6ff;">MetaPulse AI Wallet Demo</div>
+                    <div class="small">Demo wallet — in-memory. NOT FOR REAL FUNDS.</div>
+                  </div>
+                  <div>
+                    <button id="mpw-connect" class="btn primary">Connect / Create</button>
+                    <button id="mpw-disconnect" class="btn" style="display:none">Disconnect</button>
+                  </div>
+                </div>
+                
+                <div id="mpw-panel" style="display:none;">
+                  <div class="k" style="margin-bottom:8px;">Wallet Address</div>
+                  <div class="row">
+                    <div style="flex:1;">
+                      <div id="mpw-address" class="addr mono">—</div>
+                    </div>
+                    <div style="text-align:right; margin-left:12px;">
+                      <div class="small">Balance</div>
+                      <div id="mpw-balance" style="font-weight:800; color:#a2ffef;">0.000 SOL (demo)</div>
+                    </div>
+                  </div>
+
+                  <div class="k" style="margin-top:16px; margin-bottom:8px;">Send Transaction</div>
+                  <div class="row">
+                    <div style="flex:1; margin-right:8px;">
+                      <input id="mpw-to" placeholder="recipient (demo address)" style="width:100%; padding:8px; border-radius:8px; background:#081122; border:1px solid #203055; color:#cfe4ff"/>
+                    </div>
+                    <div style="width:100px">
+                      <input id="mpw-amount" placeholder="amount" style="width:100%; padding:8px; border-radius:8px; background:#081122; border:1px solid #203055; color:#cfe4ff"/>
+                    </div>
+                    <div>
+                      <button id="mpw-send" class="btn primary">Send</button>
+                    </div>
+                  </div>
+
+                  <div class="k" style="margin-top:16px; margin-bottom:8px;">Integrated Services</div>
+                  <div class="services-grid">
+                    <div class="service-card active"><strong>AI Analytics</strong><div class="small">Live signals</div></div>
+                    <div class="service-card active"><strong>Token Tracking</strong><div class="small">Portfolio view</div></div>
+                    <div class="service-card active"><strong>Signal Console</strong><div class="small">Dashboard</div></div>
+                  </div>
+
+                  <div class="k" style="margin-top:16px; margin-bottom:8px;">Transaction History</div>
+                  <div class="history" id="mpw-history" aria-live="polite"></div>
+
+                  <div class="row" style="margin-top:12px;">
+                    <button id="mpw-copy" class="btn">Copy Address</button>
+                    <button id="mpw-faucet" class="btn primary" style="display:none;">Get Demo SOL</button>
+                    <div id="mpw-status" class="status" style="flex:1; text-align:right;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+              <p class="p mono">Unified entry for accounts, tokens, and actions. Connect flows and account linking will appear here.</p>
+              <div class="rows" style="margin-top:16px">
+                <div class="row"><strong>View Tokens</strong><a class="btn" href="#/tokens">Open</a></div>
+                <div class="row"><strong>Read Whitepaper</strong><a class="btn" href="#/whitepaper">Open</a></div>
+                <div class="row"><strong>View Vision</strong><a class="btn" href="#/vision">Open</a></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Status Bar -->
+      <footer class="statusbar" role="contentinfo">
+        <div class="status-group">
+          <span class="status-item mono">env: solana</span>
+          <span class="status-item mono">session: live</span>
+          <span class="status-item mono">rate-limit: free-tier</span>
+        </div>
+        <div class="status-group">
+          <span class="mono">© MetaPulse AI · Not financial advice</span>
+        </div>
+      </footer>
+
+      <!-- Mobile Bottom Nav -->
+      <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+        <a class="mobile-nav-link" href="#/" data-side>
+          <span>Home</span>
+        </a>
+        <a class="mobile-nav-link" href="#/tokens" data-side>
+          <span>Tokens</span>
+        </a>
+        <a class="mobile-nav-link" href="#/vision" data-side>
+          <span>Vision</span>
+        </a>
+        <a class="mobile-nav-link" href="#/presale" data-side>
+          <span>Presale</span>
+        </a>
+        <a class="mobile-nav-link" href="#/launch" data-side>
+          <span>Launch</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <script>
+    // Router Configuration
+    const ROUTES = {
+      '':'view-home','/':'view-home',
+      '/whitepaper':'view-whitepaper',
+      '/tokens':'view-tokens',
+      '/vision':'view-vision',
+      '/developer':'view-developer',
+      '/tests':'view-tests',
+      '/presale':'view-presale',
+      '/join':'view-join',
+      '/launch':'view-launch'
+    };
+
+    // Command Palette Items
+    const PALETTE_ITEMS = [
+      {title:'Home', desc:'Main dashboard', route:'/'},
+      {title:'Whitepaper', desc:'Non-technical overview', route:'/whitepaper'},
+      {title:'Tokens', desc:'Top, Trending, HOT Metas', route:'/tokens'},
+      {title:'Vision', desc:'Expansion plans', route:'/vision'},
+      {title:'Developer', desc:'BroIsCoding resume', route:'/developer'},
+      {title:'Tests', desc:'Testing phases', route:'/tests'},
+      {title:'Presale', desc:'$PULSEAI token presale', route:'/presale'},
+      {title:'Join', desc:'Join community', route:'/join'},
+      {title:'Launch', desc:'Launch dApp', route:'/launch'}
+    ];
+
+    // Router Implementation
+    function route() {
+      const hash = location.hash.replace('#', '') || '/';
+      const viewId = ROUTES[hash] || 'view-home';
+      
+      // Hide all views
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      
+      // Show current view
+      const el = document.getElementById(viewId);
+      if (el) { 
+        el.classList.add('active');
+        el.scrollIntoView({behavior:'instant', block:'start'});
+      }
+      
+      // Update menubar active state
+      document.querySelectorAll('.menubar .pill').forEach(a => a.classList.remove('is-active'));
+      const act = document.querySelector(`.menubar .pill[href="#${hash}"]`);
+      if (act) act.classList.add('is-active');
+      
+      // Update sidebar active state
+      document.querySelectorAll('[data-side]').forEach(a => a.classList.remove('active'));
+      const sid = document.querySelector(`[data-side][href="#${hash}"]`);
+      if (sid) sid.classList.add('active');
+    }
+    window.addEventListener('hashchange', route);
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(route, 100);
+    });
+
+    // PillNav GSAP Effects
+    (() => {
+      if (typeof gsap === 'undefined') return;
+      
+      const pills = document.querySelectorAll('.pill');
+      const circleRefs = [];
+      const tlRefs = [];
+      
+      function initPillNav() {
+        pills.forEach((pill, i) => {
+          const circle = document.createElement('span');
+          circle.className = 'hover-circle';
+          circle.setAttribute('aria-hidden', 'true');
+          pill.appendChild(circle);
+          circleRefs.push({ pill, circle });
+          
+          // Create hover text
+          const label = pill.querySelector('.pill-label');
+          if (label && label.textContent && !pill.querySelector('.label-stack')) {
+            const hoverLabel = document.createElement('span');
+            hoverLabel.className = 'pill-label-hover';
+            hoverLabel.textContent = label.textContent;
+            hoverLabel.setAttribute('aria-hidden', 'true');
+            const labelStack = document.createElement('span');
+            labelStack.className = 'label-stack';
+            labelStack.appendChild(label);
+            labelStack.appendChild(hoverLabel);
+            pill.insertBefore(labelStack, circle);
+          }
+          
+          setupPillAnimation(i);
+        });
+      }
+      
+      function setupPillAnimation(index) {
+        const { pill, circle } = circleRefs[index];
+        if (!pill || !circle) return;
+        
+        const rect = pill.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        const R = ((w * w) / 4 + h * h) / (2 * h);
+        const D = Math.ceil(2 * R) + 2;
+        const delta = Math.ceil(R - Math.sqrt(Math.max(0, R * R - (w * w) / 4))) + 1;
+        const originY = D - delta;
+        
+        circle.style.width = `${D}px`;
+        circle.style.height = `${D}px`;
+        circle.style.bottom = `-${delta}px`;
+        gsap.set(circle, { xPercent: -50, scale: 0, transformOrigin: `50% ${originY}px` });
+        
+        const label = pill.querySelector('.pill-label');
+        const white = pill.querySelector('.pill-label-hover');
+        if (label) gsap.set(label, { y: 0 });
+        if (white) gsap.set(white, { y: h + 12, opacity: 0 });
+        
+        tlRefs[index]?.kill();
+        const tl = gsap.timeline({ paused: true });
+        tl.to(circle, { scale: 1.2, xPercent: -50, duration: 2, ease: 'power3.easeOut', overwrite: 'auto' }, 0);
+        if (label) tl.to(label, { y: -(h + 8), duration: 2, ease: 'power3.easeOut', overwrite: 'auto' }, 0);
+        if (white) {
+          gsap.set(white, { y: Math.ceil(h + 100), opacity: 0 });
+          tl.to(white, { y: 0, opacity: 1, duration: 2, ease: 'power3.easeOut', overwrite: 'auto' }, 0);
+        }
+        tlRefs[index] = tl;
+        
+        pill.addEventListener('mouseenter', () => {
+          tlRefs[index]?.tweenTo(tl.duration(), { duration: 0.3, ease: 'power3.easeOut' });
+        });
+        pill.addEventListener('mouseleave', () => {
+          tlRefs[index]?.tweenTo(0, { duration: 0.2, ease: 'power3.easeOut' });
+        });
+      }
+      
+      function layout() {
+        circleRefs.forEach((_, i) => setupPillAnimation(i));
+      }
+      
+      window.addEventListener('resize', layout);
+      if (document.fonts?.ready) {
+        document.fonts.ready.then(layout);
+      }
+      
+      setTimeout(initPillNav, 100);
+    })();
+
+    // Loading Screen Control
+    const MIN_LOADING_MS = 1800;
+    let loadStart = performance.now();
+    
+    function hideLoader() {
+      const loading = document.getElementById('loading');
+      const elapsed = performance.now() - loadStart;
+      const wait = Math.max(0, MIN_LOADING_MS - elapsed);
+      setTimeout(() => loading.classList.add('hidden'), wait);
+    }
+    window.addEventListener('load', hideLoader);
+
+    // Boot Log Progressive Updates
+    const bootLog = document.getElementById('bootlog');
+    const bootSteps = [
+      'boot: finalize UI …',
+      'boot: connect wallet adapter …',
+      'boot: ready.'
+    ];
+    let bootIdx = 0;
+    
+    function bootStep() {
+      if (bootIdx < bootSteps.length) {
+        bootLog.textContent += '\n' + bootSteps[bootIdx++];
+        setTimeout(bootStep, 300);
+      }
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(bootStep, 500);
+    });
+
+    // Typewriter Effect
+    const typewriterLines = [
+      'Signals you can read. Decisions you can own.',
+      'Console discipline. Dashboard clarity.',
+      'Built for Solana. Designed for humans.'
+    ];
+    const typewriterEl = document.getElementById('typewriter');
+    let lineIdx = 0, charIdx = 0, erasing = false;
+    
+    function typeTick() {
+      const text = typewriterLines[lineIdx];
+      if (!erasing) {
+        typewriterEl.textContent = text.slice(0, ++charIdx);
+        if (charIdx === text.length) {
+          erasing = true;
+          setTimeout(typeTick, 1500);
+          return;
+        }
+      } else {
+        typewriterEl.textContent = text.slice(0, --charIdx);
+        if (charIdx === 0) {
+          erasing = false;
+          lineIdx = (lineIdx + 1) % typewriterLines.length;
+        }
+      }
+      setTimeout(typeTick, erasing ? 30 : 35);
+    }
+    window.addEventListener('DOMContentLoaded', () => setTimeout(typeTick, 900));
+
+    // Sparkline SVG Generator
+    function sparkline(values) {
+      const w = 120, h = 28, p = 2;
+      const min = Math.min(...values), max = Math.max(...values);
+      const normalize = v => h - p - ((v - min) / (max - min || 1)) * (h - 2 * p);
+      
+      let d = `M ${p} ${normalize(values[0])}`;
+      const step = (w - 2 * p) / (values.length - 1 || 1);
+      for (let i = 1; i < values.length; i++) {
+        d += ` L ${p + i * step} ${normalize(values[i])}`;
+      }
+      
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+                <path d="${d}" fill="none" stroke="#3ad6ff" stroke-width="2"/>
+              </svg>`;
+    }
+
+    function tokenRow(symbol, text, values) {
+      return `<div class="row">
+                <div>
+                  <strong>${symbol}</strong>
+                  <div class="mono" style="color:var(--muted); margin-top:4px;">${text}</div>
+                </div>
+                <span class="spark">${sparkline(values)}</span>
+              </div>`;
+    }
+
+    // Hydrate Token Data
+    function hydrateTokens() {
+      const topList = document.getElementById('top-list');
+      const trendList = document.getElementById('trend-list');
+      const metaList = document.getElementById('meta-list');
+      
+      if (topList) {
+        topList.innerHTML = 
+          tokenRow('ABC', '$0.0019 · Δ5m +4% · Vol24h $804k · Liq $1.20m', [3,3.2,3.1,3.6,3.9,4.1,4.2,4.0,4.4,4.8]) +
+          tokenRow('XYZ', '$0.0000 · Δ5m −2% · Vol24h $111k · Liq $220k', [2,2.1,2.0,2.2,2.35,2.3,2.25,2.4,2.38,2.31]);
+      }
+      
+      if (trendList) {
+        trendList.innerHTML = 
+          tokenRow('PLS', 'SpikeScore 7.2 · Δ5m 12% · Trades5m 312 · Social 8/10', [1,1.1,1.2,1.5,1.9,2.4,2.2,2.5,2.7,2.9]);
+      }
+      
+      if (metaList) {
+        metaList.innerHTML = 
+          tokenRow('AI/Agents', 'PULSE, AIBOT, NEXUS · Heat 7/10', [4,4.2,4.5,4.7,4.9,5.1,5.2,5.0,5.3,5.6]) +
+          tokenRow('Gaming', 'DRACO, PIXEL, ARENA · Heat 6/10', [3.3,3.4,3.6,3.55,3.7,3.9,4.0,3.8,3.9,4.1]);
+      }
+    }
+    window.addEventListener('DOMContentLoaded', hydrateTokens);
+
+    // Command Palette Implementation
+    const palette = document.getElementById('palette');
+    const paletteInput = document.getElementById('palette-input');
+    const paletteList = document.getElementById('palette-list');
+    let selectedIdx = 0;
+    let filteredItems = [];
+
+    function showPalette() {
+      palette.classList.add('open');
+      paletteInput.focus();
+      updatePalette();
+    }
+
+    function hidePalette() {
+      palette.classList.remove('open');
+      paletteInput.value = '';
+      selectedIdx = 0;
+    }
+
+    function fuzzyMatch(query, text) {
+      query = query.toLowerCase();
+      text = text.toLowerCase();
+      let qIdx = 0;
+      for (let i = 0; i < text.length && qIdx < query.length; i++) {
+        if (text[i] === query[qIdx]) qIdx++;
+      }
+      return qIdx === query.length;
+    }
+
+    function updatePalette() {
+      const query = paletteInput.value.toLowerCase().trim();
+      filteredItems = query 
+        ? PALETTE_ITEMS.filter(item => 
+            fuzzyMatch(query, item.title) || fuzzyMatch(query, item.desc))
+        : PALETTE_ITEMS;
+      
+      paletteList.innerHTML = filteredItems.map((item, idx) => `
+        <div class="palette-item ${idx === selectedIdx ? 'selected' : ''}" data-route="${item.route}" role="option">
+          <div>
+            <div class="palette-item-title">${item.title}</div>
+            <div class="palette-item-desc">${item.desc}</div>
+          </div>
+        </div>
+      `).join('');
+      
+      if (filteredItems.length > 0) {
+        const selected = paletteList.querySelector(`.palette-item:nth-child(${selectedIdx + 1})`);
+        if (selected) selected.scrollIntoView({block: 'nearest'});
+      }
+    }
+
+    function selectCurrent() {
+      if (filteredItems[selectedIdx]) {
+        location.hash = filteredItems[selectedIdx].route;
+        hidePalette();
+      }
+    }
+
+    paletteInput.addEventListener('input', () => {
+      selectedIdx = 0;
+      updatePalette();
+    });
+
+    paletteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIdx = (selectedIdx + 1) % filteredItems.length;
+        updatePalette();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIdx = (selectedIdx - 1 + filteredItems.length) % filteredItems.length;
+        updatePalette();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        selectCurrent();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        hidePalette();
+      }
+    });
+
+    paletteList.addEventListener('click', (e) => {
+      const item = e.target.closest('.palette-item');
+      if (item) {
+        location.hash = item.dataset.route;
+        hidePalette();
+      }
+    });
+
+    // Keyboard Shortcut: Cmd/Ctrl+K
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (palette.classList.contains('open')) {
+          hidePalette();
+        } else {
+          showPalette();
+        }
+      }
+    });
+
+    // Focus Management
+    document.addEventListener('DOMContentLoaded', () => {
+      const links = document.querySelectorAll('a[data-link], a[data-side]');
+      links.forEach(link => {
+        link.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            link.click();
+          }
+        });
+      });
+    });
+
+    // MetaPulse AI Wallet Demo — purely client-side demo
+    (() => {
+      const connectBtn = document.getElementById('mpw-connect');
+      const disconnectBtn = document.getElementById('mpw-disconnect');
+      const panel = document.getElementById('mpw-panel');
+      const addrEl = document.getElementById('mpw-address');
+      const balEl = document.getElementById('mpw-balance');
+      const copyBtn = document.getElementById('mpw-copy');
+      const sendBtn = document.getElementById('mpw-send');
+      const faucetBtn = document.getElementById('mpw-faucet');
+      const toInput = document.getElementById('mpw-to');
+      const amtInput = document.getElementById('mpw-amount');
+      const historyEl = document.getElementById('mpw-history');
+      const statusEl = document.getElementById('mpw-status');
+
+      // Generate mock public key (not a real Solana keypair)
+      function genDemoAddress() {
+        const hex = () => Math.floor(Math.random()*0x10000).toString(16).padStart(4,'0');
+        return 'MPW' + Array.from({length:7}).map(hex).join('').toUpperCase();
+      }
+
+      // Persist in sessionStorage
+      const STORAGE_KEY = 'mpw.session';
+      function saveSession(s) { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+      function loadSession() { try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY)); } catch(e){return null} }
+
+      const DEFAULT_BAL = 12.345; // demo SOL
+
+      function makeNewSession() {
+        const s = { 
+          address: genDemoAddress(), 
+          balance: DEFAULT_BAL, 
+          history: [
+            { type:'faucet', amount:DEFAULT_BAL, to:null, note:'MetaPulse AI Demo airdrop', time: Date.now() }
+          ] 
+        };
+        saveSession(s); 
+        return s;
+      }
+
+      function renderSession(s) {
+        if(!s) return;
+        addrEl.textContent = s.address;
+        balEl.textContent = `${s.balance.toFixed(6)} SOL (demo)`;
+        
+        historyEl.innerHTML = s.history.slice().reverse().map(tx => {
+          const t = new Date(tx.time);
+          const note = tx.note ? ` · ${tx.note}` : '';
+          const dest = tx.to ? `→ ${tx.to.substring(0,12)}…` : '';
+          const amt = tx.amount !== undefined ? `${tx.type === 'send' ? '-' : '+'}${tx.amount.toFixed(4)} SOL` : '';
+          return `<div class="tx mono"><div style="display:flex;justify-content:space-between"><div><strong>${tx.type.toUpperCase()}</strong> ${dest}</div><div>${amt}</div></div><div class="small">${t.toLocaleString()}${note}</div></div>`;
+        }).join('');
+
+        panel.style.display = 'block';
+        disconnectBtn.style.display = 'inline-block';
+        connectBtn.style.display = 'none';
+      }
+
+      function setStatus(txt, timeout=2200) {
+        statusEl.textContent = txt;
+        if(timeout) setTimeout(()=>{ statusEl.textContent = ''; }, timeout);
+      }
+
+      // Initial load
+      let session = loadSession();
+      if(session){ 
+        renderSession(session); 
+        connectBtn.style.display='none'; 
+        disconnectBtn.style.display='inline-block'; 
+        if(session.balance < 5) {
+          faucetBtn.style.display = 'inline-block';
+        }
+      } else { 
+        panel.style.display = 'none'; 
+        disconnectBtn.style.display='none'; 
+      }
+
+      // Connect / Create
+      connectBtn.addEventListener('click', () => {
+        session = makeNewSession();
+        renderSession(session);
+        setStatus('Connected (demo session)');
+      });
+
+      // Disconnect
+      disconnectBtn.addEventListener('click', () => {
+        sessionStorage.removeItem(STORAGE_KEY);
+        session = null;
+        panel.style.display = 'none';
+        disconnectBtn.style.display = 'none';
+        connectBtn.style.display = 'inline-block';
+        setStatus('Disconnected');
+      });
+
+      // Copy address
+      copyBtn.addEventListener('click', async () => {
+        if(!session) return setStatus('No session');
+        try {
+          await navigator.clipboard.writeText(session.address);
+          setStatus('Address copied');
+        } catch(e) { setStatus('Clipboard failed'); }
+      });
+
+      // Send (simulated)
+      sendBtn.addEventListener('click', () => {
+        if(!session) return setStatus('No wallet connected');
+        const to = (toInput.value || '').trim();
+        const amt = parseFloat((amtInput.value || '').replace(',', '.'));
+        if(!to) return setStatus('Enter recipient (demo address)');
+        if(!amt || amt <= 0) return setStatus('Enter valid amount');
+        if(amt > session.balance) return setStatus('Insufficient demo balance');
+
+        setStatus('Sending (simulated)...');
+        setTimeout(()=> {
+          session.balance = +(session.balance - amt).toFixed(6);
+          session.history = session.history || [];
+          session.history.push({ type:'send', amount: amt, to: to, note:'Simulated tx', time: Date.now() });
+          saveSession(session);
+          renderSession(session);
+          setStatus('Sent (simulated)');
+          toInput.value = '';
+          amtInput.value = '';
+        }, 800 + Math.random()*800);
+      });
+
+      // Faucet simulator
+      faucetBtn.addEventListener('click', () => {
+        if(!session) return setStatus('No wallet connected');
+        const faucetAmt = 2.5;
+        setStatus('Getting demo SOL...');
+        setTimeout(()=> {
+          session.balance = +(session.balance + faucetAmt).toFixed(6);
+          session.history = session.history || [];
+          session.history.push({ type:'faucet', amount: faucetAmt, to: null, note:'Demo faucet', time: Date.now() });
+          saveSession(session);
+          renderSession(session);
+          setStatus('+' + faucetAmt + ' SOL received');
+        }, 600);
+      });
+
+      // Show faucet button when balance is low
+      function checkFaucetButton() {
+        if(session && session.balance < 5) {
+          faucetBtn.style.display = 'inline-block';
+        } else {
+          faucetBtn.style.display = 'none';
+        }
+      }
+      
+      // Update faucet button on render
+      const originalRender = renderSession;
+      renderSession = function(s) {
+        originalRender(s);
+        checkFaucetButton();
+      };
+
+    })();
+
+    // Aurora Background Effect (Simplified CSS-only version)
+    (() => {
+      const canvas = document.getElementById('aurora-canvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      let time = 0;
+      
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+      
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        time += 0.003;
+        
+        for (let i = 0; i < 3; i++) {
+          const x = canvas.width * (0.2 + i * 0.3 + Math.sin(time + i) * 0.1);
+          const y = canvas.height * (0.3 + Math.cos(time * 0.7 + i) * 0.2);
+          
+          const radial = ctx.createRadialGradient(x, y, 0, x, y, canvas.width * 0.8);
+          radial.addColorStop(0, `rgba(58, 41, 255, ${0.04 - i * 0.01})`);
+          radial.addColorStop(0.5, `rgba(255, 148, 180, ${0.02 - i * 0.007})`);
+          radial.addColorStop(1, 'rgba(255, 50, 50, 0)');
+          
+          ctx.fillStyle = radial;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        requestAnimationFrame(draw);
+      }
+      draw();
+    })();
+
+    // MagicBento Effects with GSAP
+    (() => {
+      if (typeof gsap === 'undefined') return;
+      
+      const cards = document.querySelectorAll('.magic-bento-card');
+      const DEFAULT_GLOW_COLOR = '132, 0, 255';
+      const DEFAULT_PARTICLE_COUNT = 12;
+      
+      cards.forEach((card, cardIndex) => {
+        const particlesRef = [];
+        const timeoutsRef = [];
+        let isHovered = false;
+        let magnetismAnimation = null;
+        
+        // Create particles
+        function createParticle(x, y) {
+          const el = document.createElement('div');
+          el.className = 'particle';
+          el.style.cssText = `
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(${DEFAULT_GLOW_COLOR}, 1);
+            box-shadow: 0 0 6px rgba(${DEFAULT_GLOW_COLOR}, 0.6);
+            pointer-events: none;
+            z-index: 100;
+            left: ${x}px;
+            top: ${y}px;
+          `;
+          return el;
+        }
+        
+        function animateParticles() {
+          if (!isHovered) return;
+          
+          for (let i = 0; i < DEFAULT_PARTICLE_COUNT; i++) {
+            const timeoutId = setTimeout(() => {
+              if (!isHovered || !card) return;
+              
+              const rect = card.getBoundingClientRect();
+              const x = Math.random() * rect.width;
+              const y = Math.random() * rect.height;
+              const particle = createParticle(x, y);
+              card.appendChild(particle);
+              particlesRef.push(particle);
+              
+              gsap.fromTo(particle, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.7)' });
+              
+              gsap.to(particle, {
+                x: (Math.random() - 0.5) * 100,
+                y: (Math.random() - 0.5) * 100,
+                rotation: Math.random() * 360,
+                duration: 2 + Math.random() * 2,
+                ease: 'none',
+                repeat: -1,
+                yoyo: true
+              });
+              
+              gsap.to(particle, {
+                opacity: 0.3,
+                duration: 1.5,
+                ease: 'power2.inOut',
+                repeat: -1,
+                yoyo: true
+              });
+            }, i * 100);
+            timeoutsRef.push(timeoutId);
+          }
+        }
+        
+        function clearAllParticles() {
+          timeoutsRef.forEach(clearTimeout);
+          timeoutsRef.length = 0;
+          magnetismAnimation?.kill();
+          
+          particlesRef.forEach(p => {
+            gsap.to(p, {
+              scale: 0,
+              opacity: 0,
+              duration: 0.3,
+              ease: 'back.in(1.7)',
+              onComplete: () => p.remove()
+            });
+          });
+          particlesRef.length = 0;
+        }
+        
+        // Hover events
+        card.addEventListener('mouseenter', () => {
+          isHovered = true;
+          animateParticles();
+          
+          gsap.to(card, {
+            rotateX: 5,
+            rotateY: 5,
+            duration: 0.3,
+            ease: 'power2.out',
+            transformPerspective: 1000
+          });
+        });
+        
+        card.addEventListener('mouseleave', () => {
+          isHovered = false;
+          clearAllParticles();
+          
+          gsap.to(card, {
+            rotateX: 0,
+            rotateY: 0,
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+          
+          magnetismAnimation = gsap.to(card, {
+            x: 0,
+            y: 0,
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+        });
+        
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          // Tilt effect
+          const rotateX = ((y - centerY) / centerY) * -10;
+          const rotateY = ((x - centerX) / centerX) * 10;
+          
+          gsap.to(card, {
+            rotateX,
+            rotateY,
+            duration: 0.1,
+            ease: 'power2.out',
+            transformPerspective: 1000
+          });
+          
+          // Magnetism effect
+          const magnetX = (x - centerX) * 0.05;
+          const magnetY = (y - centerY) * 0.05;
+          
+          magnetismAnimation = gsap.to(card, {
+            x: magnetX,
+            y: magnetY,
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+        });
+        
+        // Click ripple effect
+        card.addEventListener('click', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          const maxDistance = Math.max(
+            Math.hypot(x, y),
+            Math.hypot(x - rect.width, y),
+            Math.hypot(x, y - rect.height),
+            Math.hypot(x - rect.width, y - rect.height)
+          );
+          
+          const ripple = document.createElement('div');
+          ripple.style.cssText = `
+            position: absolute;
+            width: ${maxDistance * 2}px;
+            height: ${maxDistance * 2}px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(${DEFAULT_GLOW_COLOR}, 0.4) 0%, rgba(${DEFAULT_GLOW_COLOR}, 0.2) 30%, transparent 70%);
+            left: ${x - maxDistance}px;
+            top: ${y - maxDistance}px;
+            pointer-events: none;
+            z-index: 1000;
+          `;
+          
+          card.appendChild(ripple);
+          
+          gsap.fromTo(ripple, { scale: 0, opacity: 1 }, {
+            scale: 1,
+            opacity: 0,
+            duration: 0.8,
+            ease: 'power2.out',
+            onComplete: () => ripple.remove()
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
