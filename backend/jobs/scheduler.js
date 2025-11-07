@@ -75,6 +75,9 @@ function startSchedulers({ io, telegramBot, twitterPoster }) {
     try {
       const latest = await dexService.fetchLatestProfiles();
       store.setMarketSnapshot(latest);
+      if (latest.tokens && latest.tokens.length) {
+        runInsightCycle('bootstrap', telegramBot, twitterPoster);
+      }
     } catch (err) {
       console.error('Initial market snapshot failed', err.message);
     }

@@ -53,7 +53,13 @@ const buildHighlights = (tokens) => {
 async function fetchLatestProfiles() {
   const response = await axios.get(SOURCE_URL, { timeout: 12000 });
   const payload = response.data || {};
-  const entries = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.profiles) ? payload.profiles : [];
+  const entries = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload?.profiles)
+    ? payload.profiles
+    : [];
   const tokens = entries.map(normalizeToken).filter((t) => t.id);
   return {
     tokens,

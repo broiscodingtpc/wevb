@@ -7,48 +7,25 @@ const dexService = require('./dexScreener');
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const BROADCAST_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const escapeMarkdown = (text = '') =>
-  text
-    .replace(/_/g, '\\_')
-    .replace(/\*/g, '\\*')
-    .replace(/~/g, '\\~')
-    .replace(/`/g, '\\`')
-    .replace(/>/g, '\\>')
-    .replace(/#/g, '\\#')
-    .replace(/\+/g, '\\+')
-    .replace(/-/g, '\\-')
-    .replace(/=/g, '\\=')
-    .replace(/\|/g, '\\|')
-    .replace(/\{/g, '\\{')
-    .replace(/\}/g, '\\}')
-    .replace(/\./g, '\\.')
-    .replace(/!/g, '\\!');
-
 function formatSignal(signal) {
   if (!signal) {
-    return escapeMarkdown('No insights available yet.');
+    return 'No insights available yet.';
   }
-  const insightLines = Array.isArray(signal.insights)
-    ? signal.insights.map(
-        (item) =>
-          `• *${escapeMarkdown(item.symbol)}*: ${escapeMarkdown(item.insight)} (confidence ${(item.confidence * 100).toFixed(0)}%)`
-      )
-    : [];
-  const insights = insightLines.length ? insightLines.join('\n') : escapeMarkdown('Insights pending.');
-
-  return [
-    `*MetaPulse Signal Update* — ${escapeMarkdown(new Date(signal.meta?.generatedAt || Date.now()).toLocaleString())}`,
-    '',
-    `*Summary*: ${escapeMarkdown(signal.summary || 'N/A')}`,
-    '',
-    insights,
-    '',
-    `*Risk*: ${escapeMarkdown(signal.risk || 'N/A')}`,
-    '',
-    `Next steps: ${escapeMarkdown((signal.nextSteps || []).join(' • ') || 'Follow up later')}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const lines = [];
+  lines.push(`MetaPulse Signal Update — ${new Date(signal.meta?.generatedAt || Date.now()).toLocaleString()}`);
+  if (signal.summary) lines.push(`Summary: ${signal.summary}`);
+  if (Array.isArray(signal.insights) && signal.insights.length) {
+    lines.push('Insights:');
+    signal.insights.forEach((item) => {
+      lines.push(`- ${item.symbol}: ${item.insight} (confidence ${(item.confidence * 100).toFixed(0)}%)`);
+    });
+  }
+  lines.push(`Risk: ${signal.risk || 'N/A'}`);
+  if (Array.isArray(signal.nextSteps) && signal.nextSteps.length) {
+    lines.push('Next steps:');
+    signal.nextSteps.forEach((step) => lines.push(`• ${step}`));
+  }
+  return lines.join('\n');
 }
 
 function initTelegramBot(io) {
@@ -75,7 +52,7 @@ function initTelegramBot(io) {
 
   bot.command('signals', async (ctx) => {
     const latest = store.getSignals()[0];
-    ctx.replyWithMarkdownV2(formatSignal(latest));
+    ctx.reply(formatSignal(latest));
   });
 
   bot.command('top', async (ctx) => {
@@ -87,9 +64,9 @@ function initTelegramBot(io) {
       }
       const volumeLeaders = store.getMarketSnapshot().highlights?.volumeLeaders || [];
       const lines = volumeLeaders
-        .map((token, idx) => `#${idx + 1} ${escapeMarkdown(token.symbol)} — $${token.volume24hUsd.toLocaleString()} / 24h Δ ${token.change24h.toFixed(1)}%`)
+        .map((token, idx) => `#${idx + 1} ${token.symbol} — $${token.volume24hUsd.toLocaleString()} / 24h Δ ${token.change24h.toFixed(1)}%`)
         .join('\n');
-      ctx.replyWithMarkdownV2(lines || escapeMarkdown('No data available.'));
+      ctx.reply(lines || 'No data available.');
     } catch (err) {
       ctx.reply('Unable to fetch data at the moment.');
     }
@@ -102,9 +79,6 @@ function initTelegramBot(io) {
       firstName: ctx.from?.first_name,
     };
     const { code, expiresAt } = sessionLinker.createLinkCode(chatProfile.chatId, chatProfile);
-    const codeEsc = escapeMarkdown(code);
-    const expiresEsc = escapeMarkdown(new Date(expiresAt).toLocaleTimeString());
-    const instructions = escapeMarkdown('Enter this code inside the MetaPulse Console to link your session.');
     const message = `Session link code: ${code}\nExpires at ${new Date(expiresAt).toLocaleTimeString()}\nEnter this code inside the MetaPulse Console to link your session.`;
     ctx.reply(message);
   });
@@ -120,7 +94,7 @@ function initTelegramBot(io) {
       return;
     }
     try {
-      await bot.telegram.sendMessage(BROADCAST_CHAT_ID, formatSignal(signal), { parse_mode: 'MarkdownV2' });
+      await bot.telegram.sendMessage(BROADCAST_CHAT_ID, formatSignal(signal));
     } catch (err) {
       console.error('Failed to broadcast signal to Telegram channel', err.message);
     }
