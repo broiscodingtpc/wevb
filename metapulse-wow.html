@@ -2512,6 +2512,16 @@ $ summarize --format analyst --tone neutral</pre>
       setupLinking();
       initSockets();
     });
+
+    window.addEventListener('load', hideLoader);
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const loading = document.getElementById('loading');
+        if (loading && !loading.classList.contains('hidden')) {
+          loading.classList.add('hidden');
+        }
+      }, MIN_LOADING_MS + 400);
+    });
   </script>
 </body>
 </html>

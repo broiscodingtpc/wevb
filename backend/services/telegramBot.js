@@ -26,16 +26,15 @@ const escapeMarkdown = (text = '') =>
 
 function formatSignal(signal) {
   if (!signal) {
-    return 'No insights available yet.';
+    return escapeMarkdown('No insights available yet.');
   }
-  const insights = Array.isArray(signal.insights)
-    ? signal.insights
-        .map(
-          (item) =>
-            `• *${escapeMarkdown(item.symbol)}*: ${escapeMarkdown(item.insight)} (confidence ${(item.confidence * 100).toFixed(0)}%)`
-        )
-        .join('\n')
-    : 'Insights pending.';
+  const insightLines = Array.isArray(signal.insights)
+    ? signal.insights.map(
+        (item) =>
+          `• *${escapeMarkdown(item.symbol)}*: ${escapeMarkdown(item.insight)} (confidence ${(item.confidence * 100).toFixed(0)}%)`
+      )
+    : [];
+  const insights = insightLines.length ? insightLines.join('\n') : escapeMarkdown('Insights pending.');
 
   return [
     `*MetaPulse Signal Update* — ${escapeMarkdown(new Date(signal.meta?.generatedAt || Date.now()).toLocaleString())}`,
@@ -63,6 +62,11 @@ function initTelegramBot(io) {
 
   const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
 
+  bot.catch((err, ctx) => {
+    const description = err?.description || err?.message || 'Unknown Telegram error';
+    console.warn('Telegram bot error:', description, 'context:', ctx?.update?.update_id);
+  });
+
   bot.start((ctx) => {
     ctx.reply(
       'MetaPulse Bot online. Use /signals for latest insights, /top for volume leaders, /link to connect your web session.'
@@ -85,7 +89,7 @@ function initTelegramBot(io) {
       const lines = volumeLeaders
         .map((token, idx) => `#${idx + 1} ${escapeMarkdown(token.symbol)} — $${token.volume24hUsd.toLocaleString()} / 24h Δ ${token.change24h.toFixed(1)}%`)
         .join('\n');
-      ctx.replyWithMarkdownV2(lines || 'No data available.');
+      ctx.replyWithMarkdownV2(lines || escapeMarkdown('No data available.'));
     } catch (err) {
       ctx.reply('Unable to fetch data at the moment.');
     }
@@ -98,14 +102,17 @@ function initTelegramBot(io) {
       firstName: ctx.from?.first_name,
     };
     const { code, expiresAt } = sessionLinker.createLinkCode(chatProfile.chatId, chatProfile);
-    ctx.reply(
-      `Session link code: *${code}*\nExpires: ${new Date(expiresAt).toLocaleTimeString()}. Enter this code inside the MetaPulse Console to link your session.`,
-      { parse_mode: 'MarkdownV2' }
-    );
+    const codeEsc = escapeMarkdown(code);
+    const expiresEsc = escapeMarkdown(new Date(expiresAt).toLocaleTimeString());
+    const instructions = escapeMarkdown('Enter this code inside the MetaPulse Console to link your session.');
+    const message = `Session link code: ${code}\nExpires at ${new Date(expiresAt).toLocaleTimeString()}\nEnter this code inside the MetaPulse Console to link your session.`;
+    ctx.reply(message);
   });
 
   bot.launch().then(() => {
     console.log('Telegram bot online');
+  }).catch((err) => {
+    console.error('Failed to launch Telegram bot', err.message);
   });
 
   const notifyChannel = async (signal) => {
