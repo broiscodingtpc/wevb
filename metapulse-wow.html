@@ -1764,30 +1764,7 @@ $ summarize --format analyst --tone neutral</pre>
               </div>`;
     }
 
-    // Hydrate Token Data
-    function hydrateTokens() {
-      const topList = document.getElementById('top-list');
-      const trendList = document.getElementById('trend-list');
-      const metaList = document.getElementById('meta-list');
-      
-      if (topList) {
-        topList.innerHTML = 
-          tokenRow('ABC', '$0.0019 · Δ5m +4% · Vol24h $804k · Liq $1.20m', [3,3.2,3.1,3.6,3.9,4.1,4.2,4.0,4.4,4.8]) +
-          tokenRow('XYZ', '$0.0000 · Δ5m −2% · Vol24h $111k · Liq $220k', [2,2.1,2.0,2.2,2.35,2.3,2.25,2.4,2.38,2.31]);
-      }
-      
-      if (trendList) {
-        trendList.innerHTML = 
-          tokenRow('PLS', 'SpikeScore 7.2 · Δ5m 12% · Trades5m 312 · Social 8/10', [1,1.1,1.2,1.5,1.9,2.4,2.2,2.5,2.7,2.9]);
-      }
-      
-      if (metaList) {
-        metaList.innerHTML = 
-          tokenRow('AI/Agents', 'PULSE, AIBOT, NEXUS · Heat 7/10', [4,4.2,4.5,4.7,4.9,5.1,5.2,5.0,5.3,5.6]) +
-          tokenRow('Gaming', 'DRACO, PIXEL, ARENA · Heat 6/10', [3.3,3.4,3.6,3.55,3.7,3.9,4.0,3.8,3.9,4.1]);
-      }
-    }
-    window.addEventListener('DOMContentLoaded', hydrateTokens);
+    // Legacy hydrateTokens removed; market data now streams via bootstrapMarket and Socket.IO.
 
     // Command Palette Implementation
     const palette = document.getElementById('palette');
