@@ -34,13 +34,23 @@ git push -u origin main
 5. Select the `metapulse-ai` repository
 6. Railway will automatically detect the project and deploy
 
-### 4. Configure Environment (Optional)
+### 4. Configure Environment
 
-In Railway dashboard:
+In the Railway dashboard:
 - Go to "Variables"
-- Add any environment variables if needed:
-  - `PORT` (default: 3000)
+- Add the required secrets:
+  - `PORT` (optional, defaults to 3000)
   - `NODE_ENV=production`
+  - `SESSION_SECRET`
+  - `METAPULSE_AI_KEY`
+  - `DEXSCREENER_API_URL=https://api.dexscreener.com/token-profiles/latest/v1`
+  - `TELEGRAM_BOT_TOKEN`
+  - `TELEGRAM_CHAT_ID`
+  - `TWITTER_API_KEY`
+  - `TWITTER_API_KEY_SECRET`
+  - `TWITTER_ACCESS_TOKEN`
+  - `TWITTER_ACCESS_TOKEN_SECRET`
+  - Optional: `METAPULSE_AI_MODEL`, `METAPULSE_AI_URL`, `CORS_ORIGIN`, `SOCKET_PATH`
 
 ### 5. Get Your Domain
 
@@ -66,7 +76,7 @@ Your site will be live at: `https://your-app.railway.app`
 
 ### 404 Errors
 - Ensure `metapulse-wow.html` exists in root
-- Check Express routing in `server.js`
+- Check Express routing in `backend/index.js`
 
 ### Performance Issues
 - Railway includes CDN by default

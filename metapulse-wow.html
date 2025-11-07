@@ -789,8 +789,88 @@
       display: inline-block;
       will-change: transform, opacity;
     }
+
+    /* Live Signal Feed */
+    .signal-feed-card {
+      border:1px solid #2f3c66;
+      background: linear-gradient(135deg, rgba(58,214,255,0.08), rgba(123,97,255,0.05));
+    }
+    .signal-summary {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--fg);
+    }
+    .signal-insights {
+      list-style: none;
+      margin: 18px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+    .signal-insights li {
+      background: rgba(12, 20, 48, 0.6);
+      border: 1px solid rgba(90, 169, 255, 0.18);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .signal-insights li strong {
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      color: var(--cyan);
+    }
+    .signal-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .signal-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(8, 17, 36, 0.8);
+      border:1px solid rgba(58,214,255,0.18);
+    }
+
+    /* Link Card */
+    .link-card form {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+    .link-card input {
+      flex:1;
+      min-width:180px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid #233159;
+      background:#081326;
+      color:#dfe9ff;
+      font-family: "IBM Plex Mono", monospace;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+    .link-card input:focus {
+      outline:none;
+      border-color:#3ad6ff;
+      box-shadow:0 0 0 2px rgba(58,214,255,0.12);
+    }
+    .link-feedback {
+      margin-top:12px;
+      font-size:12px;
+      color:#9fb4e6;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
   <!-- Loading Screen -->
@@ -877,6 +957,17 @@ boot: warm analysis kernels …</pre>
               <p class="p mono" style="margin-top:6px; font-size:13px; color:var(--muted);">
                 AI features and Bot functionality will be implemented soon. Stay tuned for updates!
               </p>
+            </div>
+
+            <div class="card signal-feed-card" style="margin-top:24px;" id="signal-card">
+              <div class="k">MetaPulse Signal Console</div>
+              <p class="signal-summary mono" id="signal-summary">Waiting for the next MetaPulse insight...</p>
+              <ul class="signal-insights" id="signal-insights" aria-live="polite"></ul>
+              <div class="signal-meta">
+                <span id="signal-risk">Risk: pending</span>
+                <span id="signal-generated">Last update: —</span>
+              </div>
+              <div class="mono small" style="margin-top:12px;" id="signal-next">Next steps will appear once the insight engine publishes.</div>
             </div>
 
             <!-- MagicBento Grid -->
@@ -1384,6 +1475,18 @@ $ summarize --format analyst --tone neutral</pre>
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div class="card link-card" style="margin-top:20px;" id="link-card">
+              <div class="k">Link MetaPulse Bot Session</div>
+              <p class="p mono">Run <strong>/link</strong> inside the MetaPulse Telegram Bot to generate a code. Paste it below to sync your console session.</p>
+              <form id="link-form" autocomplete="off">
+                <input id="link-code" name="code" placeholder="ENTER CODE" maxlength="8" required />
+                <button class="btn primary" type="submit">Link Session</button>
+                <button class="btn" type="button" id="unlink-btn" style="display:none;">Unlink</button>
+              </form>
+              <div class="link-feedback mono" id="link-feedback">No session linked yet.</div>
+              <div class="mono small" id="link-profile" style="margin-top:8px; display:none;"></div>
             </div>
 
             <div class="card" style="margin-top:20px;">
@@ -2185,6 +2288,253 @@ $ summarize --format analyst --tone neutral</pre>
         });
       });
     })();
+
+    const signalSummaryEl = document.getElementById('signal-summary');
+    const signalInsightsEl = document.getElementById('signal-insights');
+    const signalRiskEl = document.getElementById('signal-risk');
+    const signalGeneratedEl = document.getElementById('signal-generated');
+    const signalNextEl = document.getElementById('signal-next');
+
+    const topList = document.getElementById('top-list');
+    const trendList = document.getElementById('trend-list');
+    const metaList = document.getElementById('meta-list');
+
+    const linkForm = document.getElementById('link-form');
+    const linkInput = document.getElementById('link-code');
+    const linkFeedback = document.getElementById('link-feedback');
+    const linkProfile = document.getElementById('link-profile');
+    const unlinkBtn = document.getElementById('unlink-btn');
+
+    let latestSignal = null;
+    let marketSnapshot = null;
+
+    const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+    const volumeFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
+    function formatPrice(value) {
+      if (!value || Number.isNaN(value)) return '—';
+      if (value >= 1) return numberFormatter.format(value);
+      return value.toFixed(6);
+    }
+
+    function formatChange(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return '0%';
+      const sign = value >= 0 ? '+' : '';
+      return `${sign}${value.toFixed(2)}%`;
+    }
+
+    function formatUsd(value) {
+      if (!value || Number.isNaN(value)) return '$0';
+      if (value < 1) return `$${value.toFixed(4)}`;
+      if (value >= 1000000) {
+        return `$${(value / 1000000).toFixed(1)}M`;
+      }
+      if (value >= 1000) {
+        return `$${(value / 1000).toFixed(1)}K`;
+      }
+      return `$${volumeFormatter.format(value)}`;
+    }
+
+    function buildSeries(token) {
+      const price = token.priceUsd || 0.0001;
+      const change = token.change24h || 0;
+      const steps = 10;
+      const base = price * (1 - Math.sign(change) * Math.min(Math.abs(change) / 800, 0.4));
+      const delta = change / 100 / steps;
+      const series = [];
+      let current = Math.max(base, price / 2);
+      for (let i = 0; i < steps; i++) {
+        current *= 1 + delta;
+        series.push(Math.max(current, price / 5));
+      }
+      return series;
+    }
+
+    function renderSignal(signal) {
+      latestSignal = signal || null;
+      if (!signalSummaryEl) return;
+
+      if (!signal) {
+        signalSummaryEl.textContent = 'Waiting for the next MetaPulse insight...';
+        signalInsightsEl.innerHTML = '';
+        const placeholder = document.createElement('li');
+        placeholder.className = 'mono';
+        placeholder.textContent = 'Signal engine is preparing data.';
+        signalInsightsEl.appendChild(placeholder);
+        signalRiskEl.textContent = 'Risk: pending';
+        signalGeneratedEl.textContent = 'Last update: —';
+        signalNextEl.textContent = 'Next steps will appear once the insight engine publishes.';
+        return;
+      }
+
+      signalSummaryEl.textContent = signal.summary || 'Insight update ready.';
+      signalInsightsEl.innerHTML = '';
+
+      const list = Array.isArray(signal.insights) && signal.insights.length
+        ? signal.insights
+        : [{ symbol: 'META', insight: 'Insight data arriving shortly.', confidence: 0.4 }];
+
+      list.forEach((item) => {
+        const li = document.createElement('li');
+        const title = document.createElement('strong');
+        title.textContent = item.symbol || '—';
+        const body = document.createElement('span');
+        body.className = 'mono';
+        body.textContent = item.insight || 'No detail';
+        const conf = document.createElement('span');
+        conf.className = 'mono small';
+        const confValue = Math.round((item.confidence || 0) * 100);
+        conf.textContent = `Confidence ${confValue}%`;
+        li.appendChild(title);
+        li.appendChild(body);
+        li.appendChild(conf);
+        signalInsightsEl.appendChild(li);
+      });
+
+      signalRiskEl.textContent = `Risk: ${signal.risk || 'Neutral'}`;
+      signalGeneratedEl.textContent = `Last update: ${new Date(signal.meta?.generatedAt || Date.now()).toLocaleString()}`;
+      const steps = Array.isArray(signal.nextSteps) && signal.nextSteps.length ? signal.nextSteps.join(' · ') : 'Monitor market context';
+      signalNextEl.textContent = `Next steps: ${steps}`;
+    }
+
+    function renderMarket(snapshot) {
+      marketSnapshot = snapshot || null;
+      if (!snapshot) return;
+
+      const highlights = snapshot.highlights || {};
+
+      if (topList) {
+        const items = highlights.volumeLeaders && highlights.volumeLeaders.length ? highlights.volumeLeaders : snapshot.tokens.slice(0, 5);
+        topList.innerHTML = items
+          .map((token) => tokenRow(token.symbol, `${formatPrice(token.priceUsd)} · Δ24h ${formatChange(token.change24h)} · Vol24h ${formatUsd(token.volume24hUsd)} · Liq ${formatUsd(token.liquidityUsd)}`, buildSeries(token)))
+          .join('');
+      }
+
+      if (trendList) {
+        const items = highlights.movers && highlights.movers.length ? highlights.movers : snapshot.tokens.slice(5, 10);
+        trendList.innerHTML = items
+          .map((token) => tokenRow(token.symbol, `Momentum ${formatChange(token.change24h)} · Score ${token.score || '—'} · Vol24h ${formatUsd(token.volume24hUsd)}`, buildSeries(token)))
+          .join('');
+      }
+
+      if (metaList) {
+        const items = highlights.steadyGainers && highlights.steadyGainers.length ? highlights.steadyGainers : snapshot.tokens.slice(10, 15);
+        metaList.innerHTML = items
+          .map((token) => tokenRow(token.symbol, `Steady Δ24h ${formatChange(token.change24h)} · Liquidity ${formatUsd(token.liquidityUsd)} · Chain ${token.chain}`, buildSeries(token)))
+          .join('');
+      }
+    }
+
+    async function fetchJSON(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+        },
+        ...options,
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        const err = new Error(error.error || 'request_failed');
+        err.status = response.status;
+        throw err;
+      }
+      return response.json();
+    }
+
+    async function bootstrapSignals() {
+      try {
+        const payload = await fetchJSON('/api/signals');
+        const latest = Array.isArray(payload.data) ? payload.data[0] : null;
+        renderSignal(latest);
+      } catch (err) {
+        renderSignal(null);
+      }
+    }
+
+    async function bootstrapMarket() {
+      try {
+        const payload = await fetchJSON('/api/market');
+        renderMarket(payload.data);
+      } catch (err) {
+        console.error('Market data unavailable', err.message);
+      }
+    }
+
+    async function checkSession() {
+      if (!linkFeedback) return;
+      try {
+        const payload = await fetchJSON('/api/me');
+        const profile = payload.data;
+        linkFeedback.textContent = 'Session linked with MetaPulse Bot.';
+        linkFeedback.style.color = '#3ad6ff';
+        linkProfile.style.display = 'block';
+        linkProfile.textContent = `Linked chat: ${profile.username ? '@' + profile.username : profile.chatId}`;
+        unlinkBtn.style.display = 'inline-flex';
+      } catch (err) {
+        linkFeedback.textContent = 'No session linked yet.';
+        linkFeedback.style.color = '#9fb4e6';
+        linkProfile.style.display = 'none';
+        unlinkBtn.style.display = 'none';
+      }
+    }
+
+    function setupLinking() {
+      if (!linkForm) return;
+
+      linkForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!linkInput.value.trim()) return;
+        try {
+          linkFeedback.textContent = 'Linking session...';
+          linkFeedback.style.color = '#9fb4e6';
+          const payload = await fetchJSON('/api/link-telegram', {
+            method: 'POST',
+            body: JSON.stringify({ code: linkInput.value.trim() }),
+          });
+          linkInput.value = '';
+          linkFeedback.textContent = 'Session linked with MetaPulse Bot.';
+          linkFeedback.style.color = '#3ad6ff';
+          linkProfile.style.display = 'block';
+          const profile = payload.data;
+          linkProfile.textContent = `Linked chat: ${profile.username ? '@' + profile.username : profile.chatId}`;
+          unlinkBtn.style.display = 'inline-flex';
+        } catch (err) {
+          linkFeedback.textContent = err.status === 404 ? 'Code invalid or expired.' : 'Link failed. Try again.';
+          linkFeedback.style.color = '#ff8a80';
+        }
+      });
+
+      if (unlinkBtn) {
+        unlinkBtn.addEventListener('click', async () => {
+          try {
+            await fetchJSON('/api/unlink', { method: 'POST' });
+          } finally {
+            linkFeedback.textContent = 'Session unlinked.';
+            linkFeedback.style.color = '#9fb4e6';
+            linkProfile.style.display = 'none';
+            unlinkBtn.style.display = 'none';
+          }
+        });
+      }
+
+      checkSession();
+    }
+
+    function initSockets() {
+      if (typeof io === 'undefined') return;
+      const socket = io({ path: window.SOCKET_PATH || '/socket.io' });
+      socket.on('signals:update', (signal) => renderSignal(signal));
+      socket.on('market:update', (snapshot) => renderMarket(snapshot));
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      bootstrapSignals();
+      bootstrapMarket();
+      setupLinking();
+      initSockets();
+    });
   </script>
 </body>
 </html>
